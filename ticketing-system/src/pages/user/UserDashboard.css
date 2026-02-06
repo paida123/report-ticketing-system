@@ -1,0 +1,302 @@
+:root{ --green:#10b981; --red:#ef4444; --blue:#3b82f6; --amber:#f59e0b; --cyan:#06b6d4; --danger:#dc2626 }
+.user-page .user-panel{ width:100%; max-width:none; padding:18px; border-radius:12px; background:rgba(255,255,255,0.6); backdrop-filter:blur(6px); box-shadow:0 8px 20px rgba(2,6,23,0.06); }
+.user-top{ display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:16px }
+.kpis{ display:flex; gap:14px; align-items:center; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:6px 2px 10px }
+.kpi{ position:relative; background:linear-gradient(135deg, rgba(255,255,255,0.82), rgba(244,247,255,0.65)); padding:18px 20px; border-radius:16px; border:1px solid rgba(148,163,184,0.22); box-shadow:0 10px 22px rgba(2,6,23,0.08); min-width:160px; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:4px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; flex:0 0 auto; outline:none }
+.kpi:hover{ transform:translateY(-6px); box-shadow:0 18px 36px rgba(2,6,23,0.14); border-color: rgba(59,130,246,0.22) }
+.kpi:focus-visible{ box-shadow:0 0 0 4px rgba(59,130,246,0.25), 0 18px 36px rgba(2,6,23,0.14) }
+.kpi::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:6px; border-top-left-radius:12px; border-bottom-left-radius:12px; }
+.kpi::after{ content:''; position:absolute; inset:0; border-radius:16px; pointer-events:none; background:radial-gradient(120px 60px at 30% 20%, rgba(59,130,246,0.12), transparent 60%); opacity:.65 }
+.kpi-num{ font-size:28px; font-weight:950; letter-spacing:-0.02em; color:#061126; line-height:1 }
+.kpi-label{ font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.08em }
+
+/* keep the color strip matching the new radius */
+.kpi::before{ border-top-left-radius:16px; border-bottom-left-radius:16px }
+
+/* color strip variants */
+.kpi.pending::before{ background:var(--amber) }
+.kpi.open::before{ background:var(--blue) }
+.kpi.in_progress::before{ background:var(--cyan) }
+.kpi.approved::before{ background:var(--green) }
+.kpi.declined::before{ background:var(--red) }
+.kpi.overdue::before{ background:var(--danger) }
+.kpi.sla-card::before{ background:var(--green) }
+
+/* make KPI area responsive */
+.kpis{ flex-wrap:wrap }
+.user-actions{ display:flex; gap:10px; align-items:center; flex:0 0 auto }
+.user-actions .btn-primary{ padding:10px 16px; border-radius:12px; font-size:14px; font-weight:800; white-space:nowrap }
+.user-tables{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start }
+.table-section{ flex:1 1 320px }
+
+@media (max-width:900px){
+	.user-tables{ grid-template-columns: 1fr }
+	.kpi{ min-width:150px }
+	.user-top{ flex-direction:column; align-items:stretch }
+	.user-actions{ justify-content:flex-end }
+}
+.um-table{ width:100%; margin-top:8px; overflow:hidden }
+
+/* Engraved / inset neumorphism for table containers */
+.um-table{
+	border-radius:16px;
+	background: linear-gradient(145deg, rgba(248,250,252,0.92), rgba(226,232,240,0.55));
+	border: 1px solid rgba(148,163,184,0.16);
+	box-shadow:
+		inset 10px 10px 18px rgba(15,23,42,0.10),
+		inset -10px -10px 18px rgba(255,255,255,0.92);
+	position:relative;
+}
+
+/* soft specular highlight to sell the engraved look */
+.um-table::before{
+	content:'';
+	position:absolute;
+	inset:1px;
+	border-radius:15px;
+	pointer-events:none;
+	background: radial-gradient(120px 70px at 18% 8%, rgba(255,255,255,0.75), transparent 60%);
+	mix-blend-mode: overlay;
+	opacity: .9;
+}
+
+/* keep inner header visually "carved" into the surface */
+.um-table .um-table-head{
+	border-top-left-radius:16px;
+	border-top-right-radius:16px;
+}
+
+.um-table .um-table-head{
+	background: linear-gradient(180deg, rgba(248,250,252,0.95), rgba(241,245,249,0.75));
+	border-bottom: 1px solid rgba(148,163,184,0.16);
+}
+
+.um-table .um-table-body{
+	padding: 6px 10px 8px;
+}
+
+.um-table .um-table-body .um-row{
+	border-bottom: 1px solid rgba(15,23,42,0.05);
+}
+
+/* wider tables: allow safe horizontal scrolling on small screens */
+.um-sla-table-wrap{
+	width:100%;
+	overflow-x:hidden;
+	padding-bottom:0;
+}
+
+/* My SLA table: fixed grid template for perfect alignment */
+.um-sla-grid{
+	display:grid !important;
+	grid-template-columns: 84px 1fr 120px 160px 84px;
+	gap:10px;
+	align-items:center;
+}
+
+/* keep header from wrapping and keep the entire row on one line */
+.um-sla-grid .um-cell{
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+}
+
+/* override the generic flex-wrap row rule inside .um-table body */
+.um-table .um-table-body .um-row.um-sla-grid{
+	flex-wrap:nowrap;
+	gap:10px;
+}
+
+.um-row.head .um-cell{ font-weight:700 }
+.um-cell{ padding:8px 10px }
+.um-modal-overlay{ position:fixed; inset:0; display:flex; align-items:flex-start; justify-content:center; padding-top:72px; background:rgba(2,6,23,0.45); z-index:2000 }
+/* blur the whole page behind the overlay (match Create Ticket feel) */
+.um-modal-overlay.um-blur-overlay{
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+}
+.um-modal{ width:760px; max-width:96%; background:rgba(255,255,255,0.96); padding:18px; border-radius:16px; border:1px solid rgba(148,163,184,0.22); box-shadow:0 24px 70px rgba(2,6,23,0.25) }
+.um-modal h3{ margin:0 0 10px; font-size:18px; letter-spacing:-0.01em; color:#0f172a }
+
+/* KPI modal table polish */
+.um-modal .um-table{ margin-top:12px; border-radius:14px; border:1px solid rgba(148,163,184,0.22); background:rgba(255,255,255,0.85) }
+.um-modal .um-table-head{ position:sticky; top:0; z-index:1; background:rgba(248,250,252,0.95); backdrop-filter:blur(6px); border-bottom:1px solid rgba(148,163,184,0.22) }
+.um-modal .um-table-head .um-row.head{ display:flex; flex-wrap:nowrap; gap:10px }
+.um-modal .um-table-head .um-row.head .um-cell{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#475569; padding:10px 10px; white-space:nowrap }
+
+.um-modal .um-table-body{ overflow:visible }
+.um-modal .um-table-body .um-row{ display:flex; flex-wrap:nowrap; gap:10px; padding:10px 0; align-items:center }
+
+/* KPI modal: use a shared grid template for perfect header/data alignment */
+.um-modal .um-kpi-grid{
+	display:grid !important;
+	grid-template-columns: 84px 1fr 140px 190px 110px;
+	gap:10px;
+	align-items:center;
+}
+
+/* columns sizing for KPI modal only (keeps key values on one line) */
+.um-modal .um-table .um-row .um-cell{ padding:8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.um-modal .um-table-head .um-row.head .um-cell{ overflow:hidden; text-overflow:ellipsis }
+.um-modal .um-table .um-row .um-cell:last-child{ text-align:right }
+.um-modal .um-table .um-row .um-cell:nth-child(1){ flex:0 0 84px }   /* ID */
+.um-modal .um-table .um-row .um-cell:nth-child(2){ flex:1 1 auto }    /* Subject */
+.um-modal .um-table .um-row .um-cell:nth-child(3){ flex:0 0 140px }  /* Type */
+.um-modal .um-table .um-row .um-cell:nth-child(4){ flex:0 0 190px }  /* Status */
+.um-modal .um-table .um-row .um-cell:nth-child(5){ flex:0 0 110px }  /* View More */
+
+.um-modal .status{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:800; font-size:12px }
+
+/* allow horizontal scroll rather than wrapping if viewport is narrow */
+.um-modal .um-table{ overflow:visible }
+.um-modal .um-table-head, .um-modal .um-table-body{ min-width:0 }
+.um-table .um-table-head .um-row.head .um-cell{ font-weight:700 }
+.um-table .um-table-body .um-row{ display:flex; gap:8px; border-bottom:1px solid rgba(15,23,42,0.04); padding:6px 0; flex-wrap:wrap }
+.um-table .um-row .um-cell{ flex:1 1 120px; min-width:0; padding:6px 8px }
+
+/* header for the compact ticket cards (aligns to the card grid columns) */
+.um-card-head{
+	display:grid;
+	grid-template-columns: 82px 1fr 120px;
+	gap:10px;
+	align-items:center;
+	padding:8px 12px;
+	margin-bottom:10px;
+	border-radius:10px;
+	background:rgba(15,23,42,0.04);
+	border:1px solid rgba(148,163,184,0.22);
+	color:#334155;
+	font-size:12px;
+	font-weight:800;
+}
+
+.um-card-head .h-id{ white-space:nowrap }
+.um-card-head .h-subject{ min-width:0 }
+.um-card-head .h-type{ justify-self:end; white-space:nowrap }
+
+/* compact clickable cards inside each table body */
+.um-ticket-card{
+	display:grid;
+	grid-template-columns: 82px 1fr 120px;
+	gap:10px;
+	align-items:center;
+	padding:10px 12px;
+	border:1px solid rgba(148,163,184,0.25);
+	border-radius:12px;
+	background:rgba(255,255,255,0.75);
+	box-shadow:0 6px 16px rgba(2,6,23,0.06);
+	cursor:pointer;
+	margin-bottom:10px;
+}
+
+.um-ticket-card:hover{
+	transform:translateY(-1px);
+	box-shadow:0 10px 22px rgba(2,6,23,0.10);
+}
+
+.um-ticket-card .ticket-id{
+	font-weight:900;
+	color:#0f172a;
+	white-space:nowrap;
+}
+
+.um-ticket-card .ticket-subject{
+	font-weight:700;
+	color:#0f172a;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+	min-width:0;
+}
+
+.um-ticket-card .ticket-type{
+	justify-self:end;
+	font-weight:800;
+	font-size:12px;
+	color:#475569;
+	background:#f1f5f9;
+	border:1px solid rgba(148,163,184,0.35);
+	padding:6px 10px;
+	border-radius:999px;
+	white-space:nowrap;
+}
+
+@media (max-width:600px){
+	.um-ticket-card{
+		grid-template-columns: 72px 1fr;
+		grid-template-areas:
+			"id type"
+			"subject subject";
+	}
+	.um-card-head{
+		grid-template-columns: 72px 1fr;
+		grid-template-areas: "id type";
+	}
+	.um-ticket-card .ticket-id{ grid-area:id }
+	.um-ticket-card .ticket-type{ grid-area:type; justify-self:end }
+	.um-ticket-card .ticket-subject{ grid-area:subject; white-space:normal; overflow:visible }
+}
+
+/* reduce header cell padding too */
+.um-table .um-table-head .um-row.head .um-cell{ padding:6px 8px }
+
+.user-actions{ display:flex; gap:10px; margin-left:auto }
+.user-actions .btn-primary{ padding:10px 16px; border-radius:12px; font-size:14px }
+.um-form .row{ display:flex; gap:10px; margin-bottom:10px }
+.actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px }
+.btn-primary{ background: linear-gradient(90deg,#60a5fa,#3b82f6); color:white; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700 }
+.btn-muted{ background:#f1f5f9; border:none; padding:8px 12px; border-radius:10px; cursor:pointer }
+.btn-secondary{ background: linear-gradient(90deg,#f8fafc,#edf2ff); color:#0f172a; border:1px solid #e6eef8; padding:6px 10px; border-radius:8px }
+.status{ padding:6px 8px; border-radius:8px; color:white; font-weight:700 }
+
+/* small pill chips (reused on My Tickets + My SLA pages) */
+.chip{
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	padding:6px 10px;
+	border-radius:999px;
+	font-weight:900;
+	font-size:12px;
+	border:1px solid rgba(148,163,184,0.28);
+	background:rgba(241,245,249,0.9);
+	color:#0f172a;
+	white-space:nowrap;
+}
+
+.chip.in-process{ background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.25); color:#1d4ed8 }
+.chip.overdue{ background:rgba(239,68,68,0.12); border-color:rgba(239,68,68,0.25); color:#b91c1c }
+.chip.done{ background:rgba(16,185,129,0.14); border-color:rgba(16,185,129,0.25); color:#047857 }
+.chip.unknown{ background:rgba(100,116,139,0.12); border-color:rgba(100,116,139,0.22); color:#475569 }
+
+/* icon button (reused in KPI modal as View More control) */
+.icon-btn{
+	inline-size: 38px;
+	block-size: 38px;
+	border-radius: 12px;
+	border: 1px solid rgba(148,163,184,0.28);
+	background: rgba(255,255,255,0.85);
+	color: #0f172a;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.icon-btn:hover{
+	transform: translateY(-1px);
+	box-shadow: 0 10px 18px rgba(2,6,23,0.12);
+	border-color: rgba(59,130,246,0.35);
+	background: rgba(239,246,255,0.95);
+}
+
+.icon-btn:focus-visible{
+	outline: none;
+	box-shadow: 0 0 0 4px rgba(59,130,246,0.25), 0 10px 18px rgba(2,6,23,0.12);
+}
+
+/* red outline validation for create modal inputs (matches My Tickets UX) */
+.input-error{ border:2px solid #ef4444 !important; outline:none }
+.um-form input, .um-form select, .um-form textarea{ border:1px solid rgba(148,163,184,0.4); border-radius:10px; padding:10px 12px; width:100% }
+.um-form label{ display:flex; flex-direction:column; gap:6px; font-weight:700; color:#0f172a }

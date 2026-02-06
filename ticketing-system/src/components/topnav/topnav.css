@@ -1,0 +1,46 @@
+.um-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding: 10px 6px 18px 6px;
+  /* increased spacing below header so page content sits lower */
+  margin-bottom: 108px;
+  border-bottom: 1px solid rgba(2,6,23,0.04);
+}
+.hamburger{
+  display:none;
+  background:transparent;
+  border:0;
+  padding:8px;
+  margin-right:8px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.hamburger svg{ color:var(--text-primary,#0f172a); }
+
+@media (max-width: 1200px){
+  .hamburger{ display:inline-flex; }
+  /* reduce page title size on medium/small screens so header remains compact */
+  .page-title h1{ font-size:20px; margin-bottom:8px; }
+}
+.page-title{ flex: 1 1 auto; }
+.page-title h1{ margin:0 0 22px 0; font-size:40px; font-weight:700; color:var(--text-primary,#0f172a); }
+.um-brand{ display:flex; align-items:center; gap:10px; }
+.brand-mark.small{ width:40px; height:40px; border-radius:8px; background: linear-gradient(135deg,var(--accent-1, #60a5fa),var(--accent-4,#f472b6)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+.brand-title{ font-weight:700; font-size:16px; }
+
+.um-actions{ position:relative; display:flex; align-items:center; gap:12px; }
+.profile{ display:flex; align-items:center; gap:8px; cursor:pointer; }
+.profile-initials{ width:36px; height:36px; border-radius:50%; background: linear-gradient(135deg,var(--accent-1, #60a5fa),var(--accent-4,#f472b6)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+.profile-name{ font-size:13px; color:#111827; }
+
+.profile-menu{ position:absolute; right:0; top:52px; background:#fff; border-radius:8px; box-shadow:0 10px 30px rgba(2,6,23,0.12); overflow:hidden; min-width:160px; z-index:120; }
+.pm-item{ display:block; width:100%; padding:10px 12px; background:transparent; border:0; text-align:left; cursor:pointer; }
+.pm-item:hover{ background: rgba(2,6,23,0.04); }
+
+/* small modal override to be centered inside admin-main */
+.um-modal.small{ max-width:420px; }
+
+/* ensure modal overlay above header */
+.um-modal-overlay{ display:flex; align-items:center; justify-content:center; position:fixed; inset:0; background: rgba(2,6,23,0.35); z-index:200; }

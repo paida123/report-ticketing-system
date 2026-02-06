@@ -1,0 +1,7 @@
+.admin-root{display:flex;min-height:100vh}
+.admin-main{margin-left:260px;padding:28px;flex:1}
+.admin-header h1{margin:0 0 8px 0}
+.cards{display:flex;gap:12px;margin:12px 0}
+.card{background:white;padding:16px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.06);min-width:180px}
+.placeholder{margin-top:18px;padding:18px;background:white;border-radius:8px;box-shadow:0 4px 12px rgba(2,6,23,0.04)}
+@media(max-width:992px){.admin-main{margin-left:0;padding:16px}}

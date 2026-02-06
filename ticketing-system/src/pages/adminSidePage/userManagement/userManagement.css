@@ -1,0 +1,90 @@
+.um-page{ padding: 22px; }
+.um-header{ display:flex; justify-content:flex-end; align-items:center; gap:300px; margin-bottom:12px; }
+.um-header h2{ margin:0; }
+
+.um-actions{ display:flex; align-items:center; gap:12px; }
+.um-actions-left{ display:flex; gap:10px; }
+.btn-primary{ background: linear-gradient(90deg,#2563eb,#60a5fa); color:white; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; box-shadow: 0 6px 18px rgba(37,99,235,0.18); }
+.btn-secondary{ background: linear-gradient(90deg,#f8fafc,#edf2ff); color:#0f172a; border:1px solid #e6eef8; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; box-shadow: 0 6px 14px rgba(2,6,23,0.06); }
+
+.btn-danger{ background: linear-gradient(90deg,#ef4444,#f97316); color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; box-shadow: 0 6px 18px rgba(239,68,68,0.12); }
+.um-modal p{ margin:12px 0 16px 0; color:#0f172a; }
+.um-modal strong{ color:#0f172a; }
+.reset-area{ display:flex; align-items:center; gap:12px; margin-top:12px; padding:10px; background: rgba(26, 61, 214, 0.02); border-radius:8px; }
+.reset-area .temp-pw{ font-family: monospace; background: rgba(255,255,0.85,0.85); padding:6px 8px; border-radius:6px; color:#0f172a; font-weight:700; }
+.btn-copy{ background: linear-gradient(90deg,#2563eb,#0f6de0); color:white; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700; }
+
+.um-table{
+  /* Make the whole table wider on larger screens so the full set of columns
+     has more horizontal room. Keep responsive behavior for narrow viewports
+     (media queries below will revert to a container-friendly width). */
+  width:100%;
+  max-width:none;
+  margin: 18px 0 18px 0;
+  border-radius:12px;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+  border: 1px solid rgba(15,23,42,0.04);
+  overflow: auto;
+}
+.um-table-head{ width:100%; }
+.um-table-body{ width:100%; }
+.um-row{ display:flex; align-items:center; justify-content:flex-start; padding:14px 12px; border-bottom:1px solid rgba(2,6,23,0.04); }
+.um-row.head{ font-weight:700; color:#475569; font-size:13px; letter-spacing:0.2px; }
+.um-row:hover{ background: rgba(37,99,235,0.02); }
+.um-cell{ padding:8px 12px; text-align:left; white-space:nowrap; }
+.name-col{ flex:1.4;  font-size:16px; color:#0f172a; }
+.surname-col{ flex:1.1; font-size:15px; color:#0f172a; }
+.email-col{ flex:2.6; color:#475569; font-size:14px; }
+.dept-col{ flex:1.8; color:#475569; }
+.action-col{ flex:0 0 90px; display:flex; justify-content:center; }
+.icon-btn{ background:transparent; border:none; padding:8px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.icon-btn svg{ display:block; }
+.icon-btn:hover{ background: rgba(2,6,23,0.04); }
+
+/* modal */
+.um-modal-overlay{ position:fixed; inset:0; background: rgba(2,6,23,0.45); display:flex; align-items:center; justify-content:center; z-index:2000; }
+.um-modal{ width:840px; max-width:96%; background: rgba(255,255,255,0.96); border-radius:14px; padding:22px; backdrop-filter: blur(6px); }
+.um-modal h3{ margin:0 0 12px 0; }
+.um-form .row{ display:flex; gap:10px; margin-bottom:10px; }
+.um-form label{ display:flex; flex-direction:column; flex:1 1 auto; font-size:13px; }
+.um-form input, .um-form select, .um-form textarea{ padding:10px; border-radius:8px; border:1px solid #e6eef8; background: rgba(255,255,255,0.6); }
+.actions{ display:flex; justify-content:flex-end; gap:8px; }
+.btn-muted{ background:#f1f5f9; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+.um-errors .err{ color:#b00020; font-size:13px; }
+
+.bulk-preview{ margin-top:12px; }
+
+.bulk-entries{ margin-top:12px; display:flex; flex-direction:column; gap:12px; }
+.bulk-entry{ background: rgba(255,255,255,0.6); padding:12px; border-radius:8px; border:1px solid rgba(230,238,248,0.6); }
+.bulk-entry .row{ margin-bottom:8px; }
+
+@media (max-width:1400px){
+  /* keep full-width within the page padding */
+  .um-table{ width:calc(100% - 44px); }
+}
+
+@media (max-width:1200px){
+  .um-table{ width:calc(100% - 44px); }
+  .name-col{ font-size:16px; }
+  .surname-col{ font-size:15px; }
+  .email-col{ font-size:14px; }
+}
+
+@media (max-width:900px){
+  .email-col{ flex:1.6; }
+}
+
+@media (max-width:600px){
+  .um-form .row{ flex-direction:column; }
+  .um-row{ flex-direction:column; align-items:flex-start; gap:6px; }
+  .um-row.head{ display:none; }
+  .um-cell{ width:100%; }
+  .um-table{ border-radius:8px; }
+  .um-actions-left{ flex-direction:column; align-items:stretch; }
+}
+
+@media (max-width:600px){
+  .um-form .row{ flex-direction:column; }
+}

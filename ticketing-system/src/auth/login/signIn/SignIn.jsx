@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import "./SignIn.css";
 import lottie from 'lottie-web';
 import animationData from '../../../images/login with account (1).json';
@@ -73,11 +74,21 @@ const SignIn = () => {
     try {
       await new Promise((res) => setTimeout(res, 600));
       console.log("Login payload:", { email, password, rememberMe });
+    
+      navigate('/admin');
     } catch {
       setServerError("Login failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const navigate = useNavigate();
+
+  const handleSignup = (ev) => {
+  
+    ev && ev.preventDefault();
+    navigate('/admin/signin');
   };
 
   return (
@@ -183,6 +194,8 @@ const SignIn = () => {
               >
                 {submitting ? "Signing in..." : "LOGIN"}
               </button>
+
+             
 
          
             </form>
