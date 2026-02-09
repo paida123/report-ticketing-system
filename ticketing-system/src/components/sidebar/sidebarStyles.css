@@ -13,42 +13,20 @@
   gap: 16px;
   z-index: 1000;
 
-  /* glass */
-  background: linear-gradient(180deg, rgba(241,245,249,0.64), rgba(226,232,240,0.35));
-  border-right: 1px solid rgba(148,163,184,0.22);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* solid neumorphism */
+  background: linear-gradient(145deg, #f4f7fb, #e7eef6);
+  border-right: 1px solid rgba(2,6,23,0.06);
 
-  /* engraved depth */
+  /* embossed + engraved depth */
   box-shadow:
-    6px 0 24px rgba(2,6,23,0.08),
-    inset 10px 10px 18px rgba(15,23,42,0.06),
-    inset -10px -10px 18px rgba(255,255,255,0.75);
+    10px 0 26px rgba(2,6,23,0.08),
+    inset 12px 12px 22px rgba(15,23,42,0.06),
+    inset -12px -12px 22px rgba(255,255,255,0.90);
 }
 
-/* premium glass shine + subtle noise */
-.admin-sidebar::before{
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(800px 320px at 18% 0%, rgba(255,255,255,0.55), transparent 60%),
-    radial-gradient(520px 240px at 110% 12%, rgba(59,130,246,0.14), transparent 65%);
-  opacity: .95;
-}
-
-.admin-sidebar::after{
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: .07;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(2,6,23,0.20) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgba(2,6,23,0.12) 0 1px, transparent 1px 4px);
-  mix-blend-mode: overlay;
-}
+/* remove glass layers (keep hooks empty in case of future reintroduction) */
+.admin-sidebar::before{ content:none; }
+.admin-sidebar::after{ content:none; }
 
 .branding {
   display: flex;
@@ -56,11 +34,12 @@
   align-items: center;
   padding: 8px 8px;
   border-radius: 16px;
-  background: linear-gradient(145deg, rgba(248,250,252,0.55), rgba(226,232,240,0.25));
-  border: 1px solid rgba(148,163,184,0.18);
+  background: linear-gradient(145deg, #f6f9fd, #e6edf6);
+  border: 1px solid rgba(2,6,23,0.06);
   box-shadow:
-    inset 10px 10px 18px rgba(15,23,42,0.06),
-    inset -10px -10px 18px rgba(255,255,255,0.78);
+    8px 10px 24px rgba(2,6,23,0.06),
+    inset 12px 12px 22px rgba(15,23,42,0.06),
+    inset -12px -12px 22px rgba(255,255,255,0.92);
 }
 
 .branding,
@@ -104,8 +83,11 @@
 
 .nav {
   flex: 1 1 auto;
-  overflow: auto;
+  overflow: hidden;
   padding: 2px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .nav ul{
@@ -114,7 +96,18 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+}
+
+/* layout helpers: keep configurations grouped lower */
+.nav-main{
+  flex: 1 1 auto;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.nav-config{
+  margin-top: 8px;
 }
 
 .nav-section{ margin-top:16px; }
@@ -137,24 +130,27 @@
   cursor: pointer;
   color: rgba(15,23,42,0.92);
 
-  /* subtle glass tile */
-  background: rgba(255,255,255,0.24);
-  border: 1px solid rgba(148,163,184,0.16);
+  /* neumorphic tile */
+  background: linear-gradient(145deg, #f6f9fd, #e6edf6);
+  border: 1px solid rgba(2,6,23,0.06);
   box-shadow:
-    inset 8px 8px 14px rgba(15,23,42,0.06),
-    inset -8px -8px 14px rgba(255,255,255,0.74);
+    10px 10px 18px rgba(2,6,23,0.06),
+    -10px -10px 18px rgba(255,255,255,0.95),
+    inset 10px 10px 18px rgba(15,23,42,0.05),
+    inset -10px -10px 18px rgba(255,255,255,0.92);
   transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   user-select: none;
   position: relative;
 }
 
 .nav-item:hover{
-  background: rgba(255,255,255,0.34);
+  background: linear-gradient(145deg, #f8fbff, #e7eff8);
   transform: translateX(4px);
   box-shadow:
-    0 16px 30px rgba(2,6,23,0.06),
-    inset 8px 8px 14px rgba(15,23,42,0.06),
-    inset -8px -8px 14px rgba(255,255,255,0.74);
+    14px 14px 26px rgba(2,6,23,0.08),
+    -12px -12px 22px rgba(255,255,255,0.92),
+    inset 10px 10px 18px rgba(15,23,42,0.05),
+    inset -10px -10px 18px rgba(255,255,255,0.92);
 }
 
 .nav-item:active{
@@ -190,12 +186,13 @@
 }
 
 .nav-item.active{
-  background: linear-gradient(90deg, rgba(59,130,246,0.18), rgba(96,165,250,0.08));
-  border: 1px solid rgba(59,130,246,0.26);
+  background: linear-gradient(145deg, #eef6ff, #dfefff);
+  border: 1px solid rgba(37,99,235,0.20);
   box-shadow:
-    0 18px 36px rgba(2,6,23,0.06),
-    inset 10px 10px 18px rgba(15,23,42,0.06),
-    inset -10px -10px 18px rgba(255,255,255,0.78);
+    16px 16px 30px rgba(2,6,23,0.08),
+    -14px -14px 24px rgba(255,255,255,0.95),
+    inset 12px 12px 22px rgba(15,23,42,0.05),
+    inset -12px -12px 22px rgba(255,255,255,0.92);
 }
 
 .nav-item.active .icon{ color: rgba(37,99,235,0.95); }

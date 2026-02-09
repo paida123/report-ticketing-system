@@ -240,7 +240,7 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
 
                     return (
                         <>
-                            <ul>
+                            <ul className="nav-main">
                                 {mainItems.map((it) => (
                                     <NavItem
                                         key={it.key}
@@ -254,7 +254,7 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
                             </ul>
 
                             {configItems.length > 0 && (
-                                <div className="nav-section">
+                                <div className="nav-section nav-config">
                                     <div className="nav-section-title">Configurations</div>
                                     <ul>
                                         {configItems.map((it) => (
