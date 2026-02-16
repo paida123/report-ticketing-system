@@ -74,7 +74,7 @@ const SignIn = () => {
     try {
       await new Promise((res) => setTimeout(res, 600));
       console.log("Login payload:", { email, password, rememberMe });
-    
+
       navigate('/admin');
     } catch {
       setServerError("Login failed. Please try again.");
@@ -84,12 +84,6 @@ const SignIn = () => {
   };
 
   const navigate = useNavigate();
-
-  const handleSignup = (ev) => {
-  
-    ev && ev.preventDefault();
-    navigate('/admin/signin');
-  };
 
   return (
     <div className="signin-container">

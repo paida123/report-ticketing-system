@@ -112,7 +112,8 @@ const Reports = () => {
 
         <section className="reports-table card">
           <h3>Tickets At Risk & Breached</h3>
-          <table className="reports-table-inner">
+          <div className="table-wrap">
+            <table className="user-tickets-table">
             <thead>
               <tr><th>Owner</th><th>Subject</th><th>Type</th><th>Dept</th><th>SLA hrs</th><th>Elapsed</th><th>Remaining</th><th>Status</th></tr>
             </thead>
@@ -130,7 +131,8 @@ const Reports = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
       </main>
     </div>

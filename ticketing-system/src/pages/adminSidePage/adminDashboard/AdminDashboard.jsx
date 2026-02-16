@@ -239,7 +239,8 @@ const AdminDashboard = () => {
 
           <div className="panel">
             <h3>Department Overview</h3>
-            <table>
+            <div className="table-wrap">
+              <table className="user-tickets-table">
               <thead>
                 <tr>
                   <th>Department</th>
@@ -264,7 +265,8 @@ const AdminDashboard = () => {
                   <td>94%</td>
                 </tr>
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </section>
       </main>

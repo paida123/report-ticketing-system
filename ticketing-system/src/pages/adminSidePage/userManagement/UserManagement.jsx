@@ -5,6 +5,66 @@ import TopNav from '../../../components/topnav/TopNav';
 import '../adminDashboard/AdminDashboard.css';
 import './userManagement.css';
 
+const BtnIcon = ({ children }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+    {children}
+  </span>
+);
+
+const IconPlus = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const IconX = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const IconCheck = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconTrash = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M9 3h6l1 2h4v2H4V5h4l1-2z" fill="currentColor" />
+    <path d="M7 9h10l-1 11H8L7 9z" fill="currentColor" opacity="0.85" />
+  </svg>
+);
+
+const IconKey = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M7.5 14a4.5 4.5 0 1 1 4.35-5.7H23v3h-2v2h-2v2h-3.15A4.5 4.5 0 0 1 7.5 14z" fill="currentColor" opacity="0.9" />
+    <circle cx="7.5" cy="9.5" r="1" fill="white" opacity="0.9" />
+  </svg>
+);
+
+const IconUpload = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 16V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M7 9l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const IconEye = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 5c5.5 0 10 4.5 11 7-1 2.5-5.5 7-11 7S2 14.5 1 12c1-2.5 5.5-7 11-7z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke="currentColor" strokeWidth="2" />
+  </svg>
+);
+
+const IconCopy = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M8 8h12v12H8V8z" fill="currentColor" opacity="0.9" />
+    <path d="M4 4h12v2H6v10H4V4z" fill="currentColor" opacity="0.65" />
+  </svg>
+);
+
 const AddUserModal = ({ open, onClose, onAdd }) => {
   const [form, setForm] = useState({ name: '', surname: '', email: '', department: '', role: '' });
   const [errors, setErrors] = useState({});
@@ -66,8 +126,12 @@ const AddUserModal = ({ open, onClose, onAdd }) => {
           </div>
 
           <div className="row actions">
-            <button type="button" className="btn-muted" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-primary">Add user</button>
+            <button type="button" className="btn-muted" onClick={onClose}>
+              <BtnIcon><IconX /> Cancel</BtnIcon>
+            </button>
+            <button type="submit" className="btn-primary">
+              <BtnIcon><IconPlus /> Add user</BtnIcon>
+            </button>
           </div>
         </form>
         <div className="um-errors">
@@ -154,9 +218,15 @@ const BulkAddModal = ({ open, onClose, onAddMany }) => {
           <textarea value={text} onChange={(e)=>setText(e.target.value)} rows={6} />
 
           <div className="row actions">
-            <button type="button" className="btn-muted" onClick={onClose}>Cancel</button>
-            <button type="button" className="btn-primary" onClick={(e)=>{ e.preventDefault(); parse(); }}>Preview</button>
-            <button type="submit" className="btn-primary" style={{marginLeft:8}}>Import</button>
+            <button type="button" className="btn-muted" onClick={onClose}>
+              <BtnIcon><IconX /> Cancel</BtnIcon>
+            </button>
+            <button type="button" className="btn-primary" onClick={(e)=>{ e.preventDefault(); parse(); }}>
+              <BtnIcon><IconEye /> Preview</BtnIcon>
+            </button>
+            <button type="submit" className="btn-primary" style={{marginLeft:8}}>
+              <BtnIcon><IconUpload /> Import</BtnIcon>
+            </button>
           </div>
 
           {items.length > 0 && (
@@ -192,7 +262,9 @@ const BulkAddModal = ({ open, onClose, onAddMany }) => {
                     </label>
                   </div>
                   <div style={{display:'flex', justifyContent:'flex-end', marginTop:8}}>
-                    <button className="btn-muted" type="button" onClick={()=>removeItem(idx)}>Remove</button>
+                    <button className="btn-muted" type="button" onClick={()=>removeItem(idx)}>
+                      <BtnIcon><IconTrash /> Remove</BtnIcon>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -291,17 +363,25 @@ const EditUserModal = ({ open, user, onClose, onSave, onDeleteRequest, onReset }
               <button type="button" className="btn-danger" onClick={() => {
                 if (!user) return;
                 onDeleteRequest && onDeleteRequest(user);
-              }}>Delete</button>
+              }}>
+                <BtnIcon><IconTrash /> Delete</BtnIcon>
+              </button>
               <button type="button" className="btn-primary" onClick={() => {
               
                 const pw = Math.random().toString(36).slice(-10);
                 setTempPassword(pw);
                 onReset && onReset(user?.id, pw);
-              }}>Reset Password</button>
+              }}>
+                <BtnIcon><IconKey /> Reset Password</BtnIcon>
+              </button>
             </div>
             <div>
-              <button type="button" className="btn-muted" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn-primary">Save</button>
+              <button type="button" className="btn-muted" onClick={onClose}>
+                <BtnIcon><IconX /> Cancel</BtnIcon>
+              </button>
+              <button type="submit" className="btn-primary">
+                <BtnIcon><IconCheck /> Save</BtnIcon>
+              </button>
             </div>
           </div>
 
@@ -309,7 +389,9 @@ const EditUserModal = ({ open, user, onClose, onSave, onDeleteRequest, onReset }
             <div className="reset-area">
               <div>Temporary password:</div>
               <div className="temp-pw">{tempPassword}</div>
-              <button className="btn-copy" onClick={() => navigator.clipboard && navigator.clipboard.writeText(tempPassword)}>Copy</button>
+              <button className="btn-copy" onClick={() => navigator.clipboard && navigator.clipboard.writeText(tempPassword)}>
+                <BtnIcon><IconCopy /> Copy</BtnIcon>
+              </button>
             </div>
           )}
         </form>
@@ -377,40 +459,64 @@ const UserManagement = () => {
            
             <div className="um-actions">
               <div className="um-actions-left">
-                <button className="btn-primary" onClick={() => setOpen(true)}>＋ Add User</button>
-                <button className="btn-primary" onClick={() => setOpenBulk(true)}>Bulk Add</button>
+                <button className="btn-primary" onClick={() => setOpen(true)}>
+                  <BtnIcon><IconPlus /> Add User</BtnIcon>
+                </button>
+                <button className="btn-primary" onClick={() => setOpenBulk(true)}>
+                  <BtnIcon><IconUpload /> Bulk Add</BtnIcon>
+                </button>
               </div>
             </div>
           </div>
 
           <div className="um-table">
-            <div className="um-table-head">
-              <div className="um-row head">
-                <div className="um-cell name-col">Name</div>
-                <div className="um-cell surname-col">Surname</div>
-                <div className="um-cell email-col">Email</div>
-                <div className="um-cell dept-col">Department</div>
-                 <div className="um-cell action-col">Action</div>
-              </div>
-            </div>
-            <div className="um-table-body">
-              {users.map(u => (
-                <div className="um-row" key={u.id}>
-                  <div className="um-cell name-col">{u.name}</div>
-                  <div className="um-cell surname-col">{u.surname}</div>
-                  <div className="um-cell email-col">{u.email}</div>
-                  <div className="um-cell dept-col">{u.department}</div>
-                  <div className="um-cell action-col">
-                    <button className="icon-btn" title="Edit user" aria-label={`Edit ${u.name} ${u.surname}`} onClick={() => openEdit(u)}>
-                      
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#0f172a"/>
-                        <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#0f172a"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="table-wrap um-table-wrap">
+              <table className="user-tickets-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Surname</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th className="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id}>
+                      <td>{u.name}</td>
+                      <td>{u.surname}</td>
+                      <td className="subject-col">{u.email}</td>
+                      <td>{u.department}</td>
+                      <td className="actions-col">
+                        <div className="um-action-icons" aria-label={`Actions for ${u.name} ${u.surname}`}>
+                          <button className="icon-btn" title="Edit user" aria-label={`Edit ${u.name} ${u.surname}`} onClick={() => openEdit(u)}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor"/>
+                              <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+                            </svg>
+                          </button>
+
+                          <button
+                            className="icon-btn"
+                            title="Delete user"
+                            aria-label={`Delete ${u.name} ${u.surname}`}
+                            onClick={() => handleDeleteRequest(u)}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                              <path d="M9 3h6l1 2h4v2H4V5h4l1-2z" fill="currentColor"/>
+                              <path d="M7 9h10l-1 11H8L7 9z" fill="currentColor" opacity="0.85"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && (
+                    <tr><td colSpan={5} className="muted" style={{ textAlign: 'center' }}>No users.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -435,8 +541,12 @@ const UserManagement = () => {
                 <h3>Confirm delete</h3>
                 <p>Are you sure you want to delete <strong>{confirmUser?.name} {confirmUser?.surname}</strong>? This action cannot be undone.</p>
                 <div className="row actions" style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-                  <button className="btn-muted" onClick={()=>setConfirmOpen(false)}>Cancel</button>
-                  <button className="btn-danger" onClick={handleConfirmDelete}>Delete</button>
+                  <button className="btn-muted" onClick={()=>setConfirmOpen(false)}>
+                    <BtnIcon><IconX /> Cancel</BtnIcon>
+                  </button>
+                  <button className="btn-danger" onClick={handleConfirmDelete}>
+                    <BtnIcon><IconTrash /> Delete</BtnIcon>
+                  </button>
                 </div>
               </div>
             </div>

@@ -1,18 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Sidebar from '../../../components/sidebar/Sidebar';
 import TopNav from '../../../components/topnav/TopNav';
 import './TicketsPage.css';
 
+const EyeIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 5c5.5 0 10 4.5 11 7-1 2.5-5.5 7-11 7S2 14.5 1 12c1-2.5 5.5-7 11-7z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"
+      stroke="currentColor"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
+const normalizeRoleName = (v) => String(v || '').trim();
+
 // Modal for adding a new ticket type (mirrors Roles add modal style)
-const AddTypeModal = ({ open, onClose, onAdd }) => {
-  const [form, setForm] = useState({ name: '', sla: '24' });
+const AddTypeModal = ({ open, onClose, onAdd, roles = [] }) => {
+  const emptyForm = { name: '', sla: '', approvalCount: '', chain: [] };
+  const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
 
-  React.useEffect(() => { if (open) setForm({ name: '', sla: '24' }); }, [open]);
+  React.useEffect(() => {
+    if (open) {
+      setForm(emptyForm);
+      setErrors({});
+    }
+  }, [open]);
+
+  const setCount = (nextCount) => {
+    const c = Math.max(0, Math.min(10, Number(nextCount) || 0));
+    setForm(prev => {
+      const prevChain = Array.isArray(prev.chain) ? prev.chain : [];
+      const nextChain = Array.from({ length: c }, (_, i) => prevChain[i] ?? '');
+      return { ...prev, approvalCount: c, chain: nextChain };
+    });
+  };
+
+  const updateChainRole = (idx, value) => {
+    const v = normalizeRoleName(value);
+    setForm(prev => {
+      const next = [...(prev.chain || [])];
+      next[idx] = v;
+      return { ...prev, chain: next };
+    });
+  };
 
   const validate = () => {
     const e = {};
-    if (!form.name || form.name.trim().length < 1) e.name = 'Type name is required';
+    const name = (form.name || '').trim();
+    const cnt = Number(form.approvalCount) || 0;
+    if (!name || name.length < 1) e.name = 'Type name is required';
+    if (cnt < 0) e.approvalCount = 'Approval count must be 0 or more';
+    if (cnt > 0) {
+      const chain = (form.chain || []).map(normalizeRoleName).slice(0, cnt);
+      if (chain.some(r => !r)) e.chain = 'Please select all approver roles in the chain';
+    }
     return e;
   };
 
@@ -21,7 +70,9 @@ const AddTypeModal = ({ open, onClose, onAdd }) => {
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length === 0) {
-      onAdd((form.name || '').trim(), Number(form.sla) || 0);
+      const cnt = Number(form.approvalCount) || 0;
+      const chain = (form.chain || []).map(normalizeRoleName).slice(0, cnt);
+      onAdd((form.name || '').trim(), Number(form.sla) || 0, chain);
       onClose();
     }
   };
@@ -38,7 +89,42 @@ const AddTypeModal = ({ open, onClose, onAdd }) => {
           </div>
           <div className="row">
             <label>SLA (hours)<input value={form.sla} onChange={(e) => setForm({ ...form, sla: e.target.value })} /></label>
+            <label>Approval count
+              <input
+                type="number"
+                min={0}
+                max={10}
+                value={form.approvalCount}
+                onChange={(e) => setCount(e.target.value)}
+              />
+            </label>
           </div>
+
+          {Number(form.approvalCount) > 0 ? (
+            <div className="row" style={{flexDirection:'column', gap:8}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:10}}>
+                <label style={{margin:0}}>Approval chain (first → last)</label>
+                <div className="muted" style={{fontSize:12}}>
+                  {`Configure ${form.approvalCount} approver role${Number(form.approvalCount) === 1 ? '' : 's'}`}
+                </div>
+              </div>
+
+              <div className="approval-chain">
+                {Array.from({ length: Number(form.approvalCount) || 0 }).map((_, idx) => (
+                  <div className="approval-step" key={idx}>
+                    <div className="approval-step-badge">{idx + 1}</div>
+                    <div className="approval-step-select">
+                      <select value={form.chain?.[idx] || ''} onChange={(e) => updateChainRole(idx, e.target.value)}>
+                        <option value="">Select role</option>
+                        {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="row actions">
             <button type="button" className="btn-muted" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary">Add</button>
@@ -70,6 +156,32 @@ const TicketsPage = () => {
   const [ticketTypes, setTicketTypes] = useState(['Incident', 'Request', 'Bug']);
   const [departments, setDepartments] = useState(['IT', 'Finance', 'HR']);
   const [slaSettings, setSlaSettings] = useState({ Incident: 24, Request: 48, Bug: 72 });
+  const [approvalSteps, setApprovalSteps] = useState({
+    Incident: ['Line Manager', 'IT Manager'],
+    Request: ['Line Manager'],
+    Bug: [],
+  });
+
+  // roles list used for selecting approvers in a chain
+  const [roles, setRoles] = useState(['Admin', 'Agent', 'Manager', 'Executive']);
+
+  useEffect(() => {
+    // try to reuse roles from any persisted roles list; fall back to small defaults
+    try {
+      const raw = localStorage.getItem('roles');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const names = parsed
+          .map(r => (typeof r === 'string' ? r : r?.name))
+          .map(normalizeRoleName)
+          .filter(Boolean);
+        if (names.length) setRoles(Array.from(new Set(names)));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // load persisted configuration from localStorage on mount
   useEffect(() => {
@@ -77,6 +189,7 @@ const TicketsPage = () => {
       const rawTypes = localStorage.getItem('ticketTypes');
       const rawSla = localStorage.getItem('slaSettings');
       const rawDeps = localStorage.getItem('departments');
+      const rawSteps = localStorage.getItem('ticketTypeApprovalSteps');
       if (rawTypes) {
         const parsed = JSON.parse(rawTypes);
         if (Array.isArray(parsed) && parsed.length >= 0) setTicketTypes(parsed);
@@ -88,6 +201,10 @@ const TicketsPage = () => {
       if (rawDeps) {
         const parsed = JSON.parse(rawDeps);
         if (Array.isArray(parsed) && parsed.length >= 0) setDepartments(parsed);
+      }
+      if (rawSteps) {
+        const parsed = JSON.parse(rawSteps);
+        if (parsed && typeof parsed === 'object') setApprovalSteps(parsed);
       }
     } catch (e) {
       // ignore parse errors and keep defaults
@@ -101,14 +218,18 @@ const TicketsPage = () => {
       localStorage.setItem('ticketTypes', JSON.stringify(ticketTypes));
       localStorage.setItem('slaSettings', JSON.stringify(slaSettings));
       localStorage.setItem('departments', JSON.stringify(departments));
+      localStorage.setItem('ticketTypeApprovalSteps', JSON.stringify(approvalSteps));
     } catch (e) {
       // storage may be unavailable; ignore
     }
-  }, [ slaSettings, departments]);
+  }, [ ticketTypes, slaSettings, departments, approvalSteps]);
 
   // Exposed filter options for users (friendly labels)
   const statuses = ['All', 'pending approval', 'in process', 'done', 'overdue'];
   const [viewMode, setViewMode] = useState('tickets'); // 'tickets' | 'types'
+
+  // Ticket Types filter
+  const [typeQuery, setTypeQuery] = useState('');
 
   const mapFilterToInternal = (f) => {
     if (!f || f === 'All') return null;
@@ -132,6 +253,12 @@ const TicketsPage = () => {
     return matchStatus && matchQuery;
   });
 
+  const filteredTypes = ticketTypes.filter(t => {
+    const q = String(typeQuery || '').trim().toLowerCase();
+    if (!q) return true;
+    return String(t || '').toLowerCase().includes(q);
+  });
+
   const createTicket = (ev) => {
     ev.preventDefault();
     const payload = { ...form };
@@ -142,6 +269,15 @@ const TicketsPage = () => {
     setModalOpen(false);
     setForm({ subject: '', owner: '', requestedBy: '', assignee: '', ticketType: '', department: '', status: 'open' });
   };
+
+  const selectedTicketTypeChain = useMemo(() => {
+    const type = form.ticketType;
+    if (!type) return [];
+    const chain = approvalSteps?.[type];
+    return Array.isArray(chain) ? chain : [];
+  }, [form.ticketType, approvalSteps]);
+
+  const selectedTicketTypeApprovalCount = selectedTicketTypeChain.length;
 
   // helper to render friendly status label and chip class
   const statusDisplay = (s) => {
@@ -162,18 +298,33 @@ const TicketsPage = () => {
   const [editModalOldName, setEditModalOldName] = useState(null);
   const [editModalName, setEditModalName] = useState('');
   const [editModalSla, setEditModalSla] = useState('24');
+  const [editModalCount, setEditModalCount] = useState(0);
+  const [editModalChain, setEditModalChain] = useState([]);
 
-    const handleAddType = (name, hours) => {
+  // view chain modal
+  const [viewChainOpen, setViewChainOpen] = useState(false);
+  const [viewChainType, setViewChainType] = useState(null);
+
+  const openChainViewer = (typeName) => {
+    setViewChainType(typeName);
+    setViewChainOpen(true);
+  };
+
+    const handleAddType = (name, hours, chain = []) => {
       const t = (name || '').trim();
       if (!t) return;
       if (!ticketTypes.includes(t)) setTicketTypes(s => [...s, t]);
       setSlaSettings(s => ({ ...s, [t]: Number(hours) || 0 }));
+    setApprovalSteps(prev => ({ ...prev, [t]: Array.isArray(chain) ? chain : [] }));
       setAddModalOpen(false);
     };
 
   const removeTicketType = (name) => {
     setTicketTypes(s => s.filter(t => t !== name));
     setSlaSettings(s => {
+      const copy = { ...s }; delete copy[name]; return copy;
+    });
+    setApprovalSteps(s => {
       const copy = { ...s }; delete copy[name]; return copy;
     });
   };
@@ -205,13 +356,36 @@ const TicketsPage = () => {
     setEditModalOldName(name);
     setEditModalName(name);
     setEditModalSla(String(slaSettings[name] ?? '24'));
+    const chain = Array.isArray(approvalSteps?.[name]) ? approvalSteps[name] : [];
+    setEditModalCount(chain.length);
+    setEditModalChain(chain);
     setEditModalOpen(true);
+  };
+
+  const setEditCount = (nextCount) => {
+    const c = Math.max(0, Math.min(10, Number(nextCount) || 0));
+    setEditModalCount(c);
+    setEditModalChain(prev => {
+      const prevChain = Array.isArray(prev) ? prev : [];
+      return Array.from({ length: c }, (_, i) => prevChain[i] ?? '');
+    });
+  };
+
+  const updateEditChain = (idx, value) => {
+    const v = normalizeRoleName(value);
+    setEditModalChain(prev => {
+      const next = [...(Array.isArray(prev) ? prev : [])];
+      next[idx] = v;
+      return next;
+    });
   };
 
   const saveEditModal = () => {
     const oldName = editModalOldName;
     const newName = editModalName.trim();
     const hours = Number(editModalSla) || 0;
+    const cnt = Number(editModalCount) || 0;
+    const chain = (editModalChain || []).map(normalizeRoleName).slice(0, cnt);
     if (!newName) return;
     setTicketTypes(prev => {
       if (oldName === newName) return prev;
@@ -224,10 +398,18 @@ const TicketsPage = () => {
       copy[newName] = hours;
       return copy;
     });
+    setApprovalSteps(prev => {
+      const copy = { ...prev };
+      delete copy[oldName];
+      copy[newName] = chain;
+      return copy;
+    });
     setEditModalOpen(false);
     setEditModalOldName(null);
     setEditModalName('');
     setEditModalSla('24');
+    setEditModalCount(0);
+    setEditModalChain([]);
   };
 
   const cancelEditModal = () => {
@@ -235,6 +417,8 @@ const TicketsPage = () => {
     setEditModalOldName(null);
     setEditModalName('');
     setEditModalSla('24');
+    setEditModalCount(0);
+    setEditModalChain([]);
   };
 
   return (
@@ -245,8 +429,9 @@ const TicketsPage = () => {
         <TopNav initials="AD" userName="Administrator" pageTitle="Tickets" />
 
         <div className="external-actions">
+            <button className={`external-btn ${viewMode==='tickets'?'active':''}`} onClick={()=>setViewMode('tickets')}>Tickets Created</button>
           <button className={`external-btn ${viewMode==='types'?'active':''}`} onClick={()=>setViewMode('types')}>Ticket Types</button>
-          <button className={`external-btn ${viewMode==='tickets'?'active':''}`} onClick={()=>setViewMode('tickets')}>Tickets Created</button>
+        
         </div>
 
         <section className="panel tickets-panel">
@@ -255,34 +440,75 @@ const TicketsPage = () => {
               <div className="types-header">
                 <h3>Configured Ticket Types</h3>
                 <div className="types-header-actions">
+                  <div className="types-filter">
+                    <input
+                      value={typeQuery}
+                      onChange={(e) => setTypeQuery(e.target.value)}
+                      placeholder="Search ticket type"
+                      aria-label="Search ticket types"
+                    />
+                    <button
+                      type="button"
+                      className="btn-primary types-filter-btn"
+                      onClick={() => { /* real-time search; no-op */ }}
+                    >
+                      Search
+                    </button>
+                    {typeQuery ? (
+                      <button
+                        type="button"
+                        className="btn-muted"
+                        onClick={() => { setTypeQuery(''); }}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
                   <button className="btn-primary" onClick={()=>setAddModalOpen(true)}>+ Add Type</button>
                 </div>
               </div>
               <div className="types-table-wrap">
-                <div className="um-table">
-                  <div className="um-table-head">
-                    <div className="um-row head">
-                      <div className="um-cell name-col">Type</div>
-                      <div className="um-cell email-col">SLA (hours)</div>
-                      <div className="um-cell action-col">Actions</div>
-                    </div>
-                  </div>
-                  <div className="um-table-body">
-                    {ticketTypes.map(t => (
-                      <div className="um-row" key={t}>
-                        <div className="um-cell name-col">{t}</div>
-                        <div className="um-cell email-col">{slaSettings[t] ?? '-'}</div>
-                        <div className="um-cell action-col">
-                          <button className="icon-btn" onClick={()=>startEdit(t)} title={`Edit ${t}`}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {ticketTypes.length === 0 && (
-                      <div className="um-row"><div className="um-cell muted">No ticket types configured.</div></div>
-                    )}
-                  </div>
+                <div className="table-wrap">
+                  <table className="user-tickets-table">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>SLA (hours)</th>
+                        <th>Approval count</th>
+                        <th className="actions-col">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTypes.map(t => (
+                        <tr key={t}>
+                          <td>{t}</td>
+                          <td>{slaSettings[t] ?? '-'}</td>
+                          <td>
+                            <div className="approval-count-cell">
+                              <button
+                                type="button"
+                                className="approval-count-btn"
+                                onClick={() => openChainViewer(t)}
+                                title={`View approval chain for ${t}`}
+                                aria-label={`View approval chain for ${t}`}
+                              >
+                                <span className="approval-count-badge">{(approvalSteps?.[t] || []).length}</span>
+                              </button>
+                              <span className="muted">approver{(approvalSteps?.[t] || []).length === 1 ? '' : 's'}</span>
+                            </div>
+                          </td>
+                          <td className="actions-col">
+                            <button className="icon-btn" onClick={()=>startEdit(t)} title={`Edit ${t}`}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredTypes.length === 0 && (
+                        <tr><td colSpan={4} className="muted" style={{textAlign:'center'}}>No ticket types configured.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -298,7 +524,17 @@ const TicketsPage = () => {
 
                 <div>
                   <label><strong>Search</strong></label>
-                  <input placeholder="Search subject, owner or assignee" value={query} onChange={(e) => setQuery(e.target.value)} />
+                  <div className="tickets-search">
+                    <input
+                      placeholder="Search subject, owner or assignee"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    <button type="button" className="btn-primary" onClick={() => { /* real-time search; no-op */ }}>Search</button>
+                    {query ? (
+                      <button type="button" className="btn-muted" onClick={() => { setQuery(''); }}>Clear</button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="tickets-actions">
@@ -306,8 +542,8 @@ const TicketsPage = () => {
                 </div>
               </div>
 
-              <div className="tickets-table-wrap">
-                <table className="tickets-table">
+              <div className="table-wrap tickets-table-wrap">
+                <table className="user-tickets-table">
                   <thead>
                     <tr>
                       <th>Owner</th>
@@ -315,7 +551,7 @@ const TicketsPage = () => {
                       <th>Requested By</th>
                       <th>Assignee</th>
                       <th>Department</th>
-                      <th>Status</th>
+                      <th className="status-col">Status</th>
                       <th>Created</th>
                     </tr>
                   </thead>
@@ -325,7 +561,7 @@ const TicketsPage = () => {
                       return (
                         <tr key={t.id} className="ticket-row" onClick={() => setSelectedTicket(t)}>
                           <td>{t.owner}</td>
-                          <td className="ticket-subject">{t.subject}</td>
+                          <td className="subject-col">{t.subject}</td>
                           <td>{t.requestedBy ?? '-'}</td>
                           <td>{t.assignee}</td>
                           <td>{t.department ?? '-'}</td>
@@ -375,6 +611,35 @@ const TicketsPage = () => {
                       </select>
                     </label>
                   </div>
+
+                  {/* approval context for selected ticket type */}
+                  <div className="row" style={{flexDirection:'column', gap:8}}>
+                    <div className="approval-summary">
+                      <div className="approval-summary-left">
+                        <div className="approval-summary-title">Approval count</div>
+                        <div className="approval-summary-value">
+                          <span className="approval-count-badge">{form.ticketType ? selectedTicketTypeApprovalCount : '—'}</span>
+                          <span className="muted">{form.ticketType ? 'approvers before assignment' : 'Select a ticket type to see approvals'}</span>
+                        </div>
+                      </div>
+                      {form.ticketType && (
+                        <button type="button" className="icon-btn" onClick={() => openChainViewer(form.ticketType)} title="View approval chain">
+                          <EyeIcon />
+                        </button>
+                      )}
+                    </div>
+
+                    {form.ticketType && selectedTicketTypeChain.length > 0 && (
+                      <div className="approval-chain-preview">
+                        {selectedTicketTypeChain.map((role, idx) => (
+                          <div className="approval-step-pill" key={idx}>
+                            <span className="approval-step-pill-index">{idx + 1}</span>
+                            <span className="approval-step-pill-role">{role}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="row">
                     <label>Status
                       <select value={form.status} onChange={(e)=>setForm({...form,status:e.target.value})}>
@@ -393,6 +658,71 @@ const TicketsPage = () => {
               </div>
             </div>
           )}
+
+          {editModalOpen && (
+            <div className="um-modal-overlay" role="dialog" aria-modal="true">
+              <div className="um-modal">
+                <h3>Edit ticket type</h3>
+                <div className="um-form">
+                  <div className="row">
+                    <label>Type name
+                      <input value={editModalName} onChange={(e) => setEditModalName(e.target.value)} />
+                    </label>
+                  </div>
+                  <div className="row">
+                    <label>SLA (hours)
+                      <input value={editModalSla} onChange={(e) => setEditModalSla(e.target.value)} />
+                    </label>
+                  </div>
+                  <div className="row">
+                    <label>Approval count
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={editModalCount}
+                        onChange={(e)=>setEditCount(e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  {Number(editModalCount) > 0 ? (
+                    <div className="row" style={{flexDirection:'column', gap:8}}>
+                      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:10}}>
+                        <label style={{margin:0}}>Approval chain (first → last)</label>
+                        <div className="muted" style={{fontSize:12}}>
+                          {`Configure ${editModalCount} approver role${Number(editModalCount) === 1 ? '' : 's'}`}
+                        </div>
+                      </div>
+
+                      <div className="approval-chain">
+                        {Array.from({ length: Number(editModalCount) || 0 }).map((_, idx) => (
+                          <div className="approval-step" key={idx}>
+                            <div className="approval-step-badge">{idx + 1}</div>
+                            <div className="approval-step-select">
+                              <select value={editModalChain?.[idx] || ''} onChange={(e)=>updateEditChain(idx, e.target.value)}>
+                                <option value="">Select role</option>
+                                {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="row actions">
+                    <button type="button" className="btn-danger" onClick={() => { setConfirmTarget(editModalOldName); setConfirmOpen(true); }}>Delete</button>
+                    <div style={{display:'flex', gap:8}}>
+                      <button type="button" className="btn-muted" onClick={cancelEditModal}>Cancel</button>
+                      <button type="button" className="btn-primary" onClick={saveEditModal}>Save</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AddTypeModal open={addModalOpen} onClose={() => setAddModalOpen(false)} onAdd={handleAddType} roles={roles} />
 
             {/* configure modal removed; types are managed inline in the types panel */}
 
@@ -419,35 +749,7 @@ const TicketsPage = () => {
             </div>
           </div>
         )}
-        {editModalOpen && (
-          <div className="um-modal-overlay" role="dialog" aria-modal="true">
-            <div className="um-modal">
-              <h3>Edit Ticket Type</h3>
-              <div className="um-form">
-                <div className="row">
-                  <label>Type name
-                    <input value={editModalName} onChange={(e)=>setEditModalName(e.target.value)} />
-                  </label>
-                </div>
-                <div className="row">
-                  <label>SLA (hours)
-                    <input value={editModalSla} onChange={(e)=>setEditModalSla(e.target.value)} />
-                  </label>
-                </div>
-                <div className="row actions" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <div>
-                    <button type="button" className="btn-danger" onClick={() => { setConfirmTarget(editModalOldName); setConfirmOpen(true); }}>Delete</button>
-                  </div>
-                  <div>
-                    <button className="btn-muted" onClick={cancelEditModal}>Cancel</button>
-                    <button className="btn-primary" onClick={saveEditModal} style={{marginLeft:8}}>Save</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <AddTypeModal open={addModalOpen} onClose={()=>setAddModalOpen(false)} onAdd={handleAddType} />
+
         {confirmOpen && (
           <div className="um-modal-overlay" role="dialog" aria-modal="true">
             <div className="um-modal">
@@ -456,6 +758,43 @@ const TicketsPage = () => {
               <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:12}}>
                 <button className="btn-muted" onClick={()=>setConfirmOpen(false)}>Cancel</button>
                 <button className="btn-danger" onClick={handleConfirmDelete}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {viewChainOpen && (
+          <div className="um-modal-overlay" role="dialog" aria-modal="true">
+            <div className="um-modal" style={{minWidth: 560, maxWidth: 760}}>
+              <div className="approval-chain-header">
+                <div>
+                  <h3 className="approval-chain-title">Approval chain</h3>
+                  <div className="approval-chain-subtitle">
+                    {viewChainType ? <><strong>{viewChainType}</strong> • from first approver to last approver</> : 'Ticket type'}
+                  </div>
+                </div>
+                <button className="btn-muted" onClick={() => setViewChainOpen(false)}>Close</button>
+              </div>
+
+              <div className="approval-chain-stepper">
+                {viewChainType && (approvalSteps?.[viewChainType] || []).length ? (
+                  <div className="approval-chain" style={{marginTop:4}}>
+                    {(approvalSteps?.[viewChainType] || []).map((role, idx, arr) => (
+                      <div className="approval-step" key={idx}>
+                        <div className="approval-step-badge">{idx + 1}</div>
+                        <div className="approval-step-content">
+                          <div className="approval-step-role">{role || '—'}</div>
+                          <div className="approval-step-meta">
+                            <span className="approval-step-tag">Approver role</span>
+                            <span className="approval-step-tag secondary">{idx === 0 ? 'First approver' : (idx === arr.length - 1 ? 'Final approver' : 'Next approver')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="approval-chain-empty">No approval chain configured for this ticket type.</div>
+                )}
               </div>
             </div>
           </div>

@@ -3,6 +3,85 @@ import Sidebar from '../../../components/sidebar/Sidebar';
 import TopNav from '../../../components/topnav/TopNav';
 import './SlaPage.css';
 
+const DEFAULT_SLA_SETTINGS = { Incident: 24, Request: 48, Bug: 72 };
+
+const mulberry32 = (seed) => {
+  let t = seed >>> 0;
+  return () => {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const pick = (rng, list) => list[Math.floor(rng() * list.length)];
+
+const generateSampleTickets = (count = 48) => {
+  const rng = mulberry32(20260216);
+
+  const departments = ['IT', 'Finance', 'HR', 'Operations', 'Procurement'];
+  const owners = ['Maya Patel', 'Jonathan Kim', 'Alice Mbatha', 'Priya Singh', 'Sam Lee', 'Alex Doe'];
+  const assignees = ['Alice Mbatha', 'Bob Stone', 'Charlie', 'Maya Patel', 'Jonathan Kim'];
+  const requestedBy = ['Sarah L.', 'Carlos M.', 'QA Team', 'External', 'Finance Bot', 'Amir K.', 'Nadia P.'];
+  const ticketTypes = ['Incident', 'Request', 'Bug'];
+  const subjects = {
+    Incident: ['Cannot login', 'System outage', 'VPN not connecting', 'Email down', 'Account locked'],
+    Request: ['Invoice request', 'New laptop request', 'Access request', 'Payroll update', 'Software install'],
+    Bug: ['UI bug on dashboard', 'Export CSV not working', 'Sorting issue', 'Broken link', 'Form validation bug'],
+  };
+
+  const tickets = [];
+  for (let i = 0; i < count; i += 1) {
+    const ticketType = pick(rng, ticketTypes);
+    const slaHours = DEFAULT_SLA_SETTINGS[ticketType] ?? 24;
+
+    // Bias elapsed time so reports show a healthy mix of met / at-risk / breached.
+    // - 15% overdue
+    // - 15% breached (elapsed > SLA)
+    // - 20% at-risk (remaining within 25% of SLA)
+    // - rest comfortably within SLA
+    const roll = rng();
+    let status = pick(rng, ['open', 'pending', 'open', 'pending', 'closed']);
+    let elapsedHours;
+
+    if (roll < 0.15) {
+      status = 'overdue';
+      elapsedHours = slaHours * (1.1 + rng() * 1.2);
+    } else if (roll < 0.30) {
+      status = pick(rng, ['open', 'pending']);
+      elapsedHours = slaHours * (1.05 + rng() * 0.8);
+    } else if (roll < 0.50) {
+      status = pick(rng, ['open', 'pending']);
+      elapsedHours = Math.max(1, slaHours * (0.78 + rng() * 0.20));
+    } else {
+      elapsedHours = Math.max(1, slaHours * (0.10 + rng() * 0.60));
+    }
+
+    if (status === 'closed') {
+      // closed tickets should usually be within SLA
+      elapsedHours = Math.max(1, slaHours * (0.10 + rng() * 0.70));
+    }
+
+    const createdAt = new Date(Date.now() - elapsedHours * 60 * 60 * 1000).toISOString();
+    const id = `TKT-${String(1000 + i)}`;
+
+    tickets.push({
+      id,
+      subject: pick(rng, subjects[ticketType] || subjects.Incident),
+      status,
+      owner: pick(rng, owners),
+      requestedBy: pick(rng, requestedBy),
+      assignee: pick(rng, assignees),
+      ticketType,
+      department: pick(rng, departments),
+      createdAt,
+    });
+  }
+
+  return tickets;
+};
+
 const SlaPage = () => {
   // sample users (replace with real data source when available)
   // added `avgResolutionHours` so we can compute SLA status per user
@@ -17,28 +96,26 @@ const SlaPage = () => {
   const [deptFilter, setDeptFilter] = useState('All');
   const [query, setQuery] = useState('');
   const [slaModalOpen, setSlaModalOpen] = useState(false);
-  const [slaSettings, setSlaSettings] = useState({ Incident: 24, Request: 48, Bug: 72 });
+  const [slaSettings, setSlaSettings] = useState(DEFAULT_SLA_SETTINGS);
   const [slaModalInitial, setSlaModalInitial] = useState({ type: '', hours: 24 });
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'report'
 
-  // tickets source: try localStorage, fallback to demo
-  const sampleTickets = [
-    { id: 1, subject: 'Cannot login', status: 'open', owner: 'Maya Patel', requestedBy: 'Sarah L.', assignee: 'Alice Mbatha', ticketType: 'Incident', department: 'IT', createdAt: '2026-01-20' },
-    { id: 2, subject: 'Invoice request', status: 'pending', owner: 'Jonathan Kim', requestedBy: 'Carlos M.', assignee: 'Bob Stone', ticketType: 'Request', department: 'Finance', createdAt: '2026-01-19' },
-    { id: 3, subject: 'System outage', status: 'overdue', owner: 'Priya Singh', requestedBy: 'External', assignee: 'Maya Patel', ticketType: 'Incident', department: 'IT', createdAt: '2026-01-18' },
-    { id: 4, subject: 'UI bug on dashboard', status: 'open', owner: 'Alex Doe', requestedBy: 'QA Team', assignee: 'Charlie', ticketType: 'Bug', department: 'IT', createdAt: '2026-01-21' },
-    { id: 5, subject: 'Payroll update', status: 'pending', owner: 'Sam Lee', requestedBy: 'Finance Bot', assignee: 'Bob Stone', ticketType: 'Request', department: 'Finance', createdAt: '2026-01-15' },
-  ];
+  // pagination
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
+  const [reportPage, setReportPage] = useState(1);
+  const [reportPageSize, setReportPageSize] = useState(10);
 
+  // tickets source: try localStorage, fallback to demo
   const [tickets, setTickets] = useState(() => {
     try {
       const raw = localStorage.getItem('tickets');
       if (raw) return JSON.parse(raw);
     } catch (e) {}
-    return sampleTickets;
+    return generateSampleTickets(56);
   });
 
-  const departments = ['All', ...Array.from(new Set(users.map((u) => u.department)))];
+  const departments = ['All', ...Array.from(new Set(tickets.map((t) => t.department).filter(Boolean)))];
 
   const filteredUsers = users.filter((u) => {
     const matchesDept = deptFilter === 'All' || u.department === deptFilter;
@@ -182,6 +259,48 @@ const SlaPage = () => {
     return matchesQuery;
   });
 
+  // reset pagination when filters/view change
+  useEffect(() => {
+    setTablePage(1);
+    setReportPage(1);
+  }, [deptFilter, query, viewMode]);
+
+  const paginate = (rows, page, pageSize) => {
+    const safeSize = Math.max(1, Number(pageSize) || 10);
+    const total = rows.length;
+    const pages = Math.max(1, Math.ceil(total / safeSize));
+    const safePage = Math.min(Math.max(1, Number(page) || 1), pages);
+    const start = (safePage - 1) * safeSize;
+    const end = start + safeSize;
+    return {
+      page: safePage,
+      pageSize: safeSize,
+      total,
+      pages,
+      start,
+      end: Math.min(end, total),
+      slice: rows.slice(start, end),
+    };
+  };
+
+  const reportTickets = [...visibleTickets]
+    .filter((t) => t.breached || t.atRisk)
+    .sort((a, b) => (b.breached ? 1 : 0) - (a.breached ? 1 : 0) || (b.atRisk ? 1 : 0) - (a.atRisk ? 1 : 0));
+
+  const tablePager = paginate(filteredTickets, tablePage, tablePageSize);
+  const reportPager = paginate(reportTickets, reportPage, reportPageSize);
+
+  // keep state pages clamped to computed page counts
+  useEffect(() => {
+    if (tablePage !== tablePager.page) setTablePage(tablePager.page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablePager.page]);
+
+  useEffect(() => {
+    if (reportPage !== reportPager.page) setReportPage(reportPager.page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportPager.page]);
+
   const exportCsv = (rows = visibleTickets) => {
     const exportRows = rows.map(t => ({ id: t.id, subject: t.subject, owner: t.owner, assignee: t.assignee, department: t.department, status: t.status, ticketType: t.ticketType, sla: t.sla, createdAt: t.createdAt }));
     if (exportRows.length === 0) return;
@@ -259,11 +378,11 @@ const SlaPage = () => {
           </div>
 
           {viewMode === 'table' ? (
-            <div className="sla-table-wrap">
-              <table className="sla-table">
+            <div className="table-wrap sla-table-wrap">
+              <table className="user-tickets-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th className="id-col">ID</th>
                     <th>Owner</th>
                     <th>Department</th>
                     <th>Ticket Type</th>
@@ -273,7 +392,7 @@ const SlaPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTickets.map((t) => {
+                  {tablePager.slice.map((t) => {
                     const slaMet = !t.breached;
                     return (
                       <tr key={t.id} className={t.breached? 'row-breached': t.atRisk? 'row-atrisk':''}>
@@ -297,6 +416,43 @@ const SlaPage = () => {
                   )}
                 </tbody>
               </table>
+
+              {filteredTickets.length > 0 && (
+                <div className="pagination">
+                  <div className="pagination-info">
+                    Showing {tablePager.start + 1}–{tablePager.end} of {tablePager.total}
+                  </div>
+
+                  <div className="pagination-controls">
+                    <label className="pagination-size">
+                      Rows
+                      <select value={tablePageSize} onChange={(e) => setTablePageSize(Number(e.target.value) || 10)}>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </label>
+
+                    <button
+                      type="button"
+                      className="btn-muted"
+                      disabled={tablePager.page <= 1}
+                      onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <div className="pagination-page">Page {tablePager.page} of {tablePager.pages}</div>
+                    <button
+                      type="button"
+                      className="btn-muted"
+                      disabled={tablePager.page >= tablePager.pages}
+                      onClick={() => setTablePage((p) => Math.min(tablePager.pages, p + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="reports-table card">
@@ -304,10 +460,11 @@ const SlaPage = () => {
               <div style={{display:'flex', justifyContent:'flex-end', marginBottom:8}}>
                 <button className="btn-primary small" onClick={() => exportCsv()}>Export CSV</button>
               </div>
-              <table className="reports-table-inner">
+              <div className="table-wrap">
+                <table className="user-tickets-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th className="id-col">ID</th>
                     <th>Owner</th>
                     <th>Subject</th>
                     <th>Type</th>
@@ -319,9 +476,7 @@ const SlaPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleTickets
-                    .sort((a,b)=> (b.breached?1:0) - (a.breached?1:0) || (b.atRisk?1:0)-(a.atRisk?1:0))
-                    .map(t => (
+                  {reportPager.slice.map(t => (
                       <tr key={t.id} className={t.breached? 'row-breached': t.atRisk? 'row-atrisk':''}>
                         <td>{t.id}</td>
                         <td>{t.owner}</td>
@@ -334,8 +489,52 @@ const SlaPage = () => {
                         <td><span className={`status ${t.breached? 'breached': t.atRisk? 'atrisk': t.status}`}>{t.breached? 'breached' : t.atRisk? 'at-risk' : t.status}</span></td>
                       </tr>
                   ))}
+
+                  {reportTickets.length > 0 ? null : (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center' }}>No at-risk or breached tickets for the current filters.</td>
+                    </tr>
+                  )}
                 </tbody>
-              </table>
+                </table>
+              </div>
+
+              {reportTickets.length > 0 && (
+                <div className="pagination">
+                  <div className="pagination-info">
+                    Showing {reportPager.start + 1}–{reportPager.end} of {reportPager.total}
+                  </div>
+
+                  <div className="pagination-controls">
+                    <label className="pagination-size">
+                      Rows
+                      <select value={reportPageSize} onChange={(e) => setReportPageSize(Number(e.target.value) || 10)}>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </label>
+
+                    <button
+                      type="button"
+                      className="btn-muted"
+                      disabled={reportPager.page <= 1}
+                      onClick={() => setReportPage((p) => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <div className="pagination-page">Page {reportPager.page} of {reportPager.pages}</div>
+                    <button
+                      type="button"
+                      className="btn-muted"
+                      disabled={reportPager.page >= reportPager.pages}
+                      onClick={() => setReportPage((p) => Math.min(reportPager.pages, p + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

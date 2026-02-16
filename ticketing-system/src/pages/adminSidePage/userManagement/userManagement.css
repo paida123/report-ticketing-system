@@ -39,9 +39,13 @@
 .email-col{ flex:2.6; color:#475569; font-size:14px; }
 .dept-col{ flex:1.8; color:#475569; }
 .action-col{ flex:0 0 90px; display:flex; justify-content:center; }
-.icon-btn{ background:transparent; border:none; padding:8px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
-.icon-btn svg{ display:block; }
-.icon-btn:hover{ background: rgba(2,6,23,0.04); }
+
+/* Ensure tables match the shared Tickets table design (src/styles/tables.css) */
+.um-table-wrap{ overflow:auto; }
+
+/* User Management has 2 action icons (edit + delete) */
+.um-action-icons{ display:inline-flex; gap:8px; justify-content:flex-end; }
+.um-page .user-tickets-table .actions-col{ width: 140px; }
 
 /* modal */
 .um-modal-overlay{ position:fixed; inset:0; background: rgba(2,6,23,0.45); display:flex; align-items:center; justify-content:center; z-index:2000; }

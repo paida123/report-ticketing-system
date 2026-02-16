@@ -156,29 +156,34 @@ const DepartmentConfuguration = () => {
 							</div>
 						</div>
 
-						<div className="um-table">
-							<div className="um-table-head">
-								<div className="um-row head">
-									<div className="um-cell name-col">Name</div>
-									<div className="um-cell email-col">Manager</div>
-									<div className="um-cell dept-col">Active</div>
-									<div className="um-cell action-col">Actions</div>
-								</div>
-							</div>
-							<div className="um-table-body">
-								{departments.map(d => (
-									<div className="um-row" key={d.id}>
-										<div className="um-cell name-col">{d.name}</div>
-										<div className="um-cell email-col">{d.manager}</div>
-										<div className="um-cell dept-col">{d.active ? 'Yes' : 'No'}</div>
-										<div className="um-cell action-col">
-											<button className="icon-btn" onClick={() => { setEditing(d); setEditOpen(true); }} title="Edit">
-												<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
-											</button>
-										</div>
-									</div>
-								))}
-							</div>
+						<div className="table-wrap um-table-wrap">
+							<table className="user-tickets-table">
+								<thead>
+									<tr>
+										<th>Name</th>
+										<th>Manager</th>
+										<th>Active</th>
+										<th className="actions-col">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{departments.map(d => (
+										<tr key={d.id}>
+											<td>{d.name}</td>
+											<td>{d.manager}</td>
+											<td>{d.active ? 'Yes' : 'No'}</td>
+											<td className="actions-col">
+												<button className="icon-btn" onClick={() => { setEditing(d); setEditOpen(true); }} title="Edit" aria-label={`Edit department ${d.name}`}>
+													<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
+												</button>
+											</td>
+										</tr>
+									))}
+									{departments.length === 0 && (
+										<tr><td colSpan={4} className="muted" style={{ textAlign: 'center' }}>No departments.</td></tr>
+									)}
+								</tbody>
+							</table>
 						</div>
 
 						<AddDepartmentModal open={openAdd} onClose={() => setOpenAdd(false)} onAdd={add} />
