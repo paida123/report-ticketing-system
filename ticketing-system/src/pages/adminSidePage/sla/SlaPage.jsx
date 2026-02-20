@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from '../../../components/sidebar/Sidebar';
-import TopNav from '../../../components/topnav/TopNav';
 import './SlaPage.css';
 
 const DEFAULT_SLA_SETTINGS = { Incident: 24, Request: 48, Bug: 72 };
@@ -313,12 +311,7 @@ const SlaPage = () => {
   };
 
   return (
-    <div className="admin-page">
-      <Sidebar />
-
-      <main className="admin-main">
-        <TopNav initials="AD" userName="Administrator" pageTitle="SLA & Performance" />
-
+    <>
         <section className="panel sla-panel">
           <div className="reports-actions">
             <button className={`btn-primary ${viewMode==='report' ? 'active':''}`} onClick={() => setViewMode('report')}>Report</button>
@@ -545,8 +538,7 @@ const SlaPage = () => {
             initialHours={slaModalInitial.hours}
           />
         </section>
-      </main>
-    </div>
+    </>
   );
 };
 

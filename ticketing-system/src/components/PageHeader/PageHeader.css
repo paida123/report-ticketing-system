@@ -1,0 +1,23 @@
+/* Page Header — actions bar only (title lives in TopNav) */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+

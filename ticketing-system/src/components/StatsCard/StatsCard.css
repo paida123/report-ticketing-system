@@ -1,0 +1,132 @@
+/* Stats Row Container */
+.stats-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+/* Individual Stats Card */
+.stats-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  min-width: 160px;
+  flex: 1 1 160px;
+  max-width: 220px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--card-border, rgba(148, 163, 184, 0.15));
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.stats-card.clickable {
+  cursor: pointer;
+}
+
+.stats-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.stats-card.clickable:active {
+  transform: translateY(0);
+}
+
+.stats-card.active {
+  background: var(--card-bg, rgba(59, 130, 246, 0.08));
+  border-color: var(--card-accent, #3b82f6);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--card-accent, #3b82f6) 18%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.stats-card.active .stats-card-value {
+  color: var(--card-accent, #3b82f6);
+}
+
+/* Left accent bar */
+.stats-card-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--card-accent, #3b82f6);
+  border-radius: 4px 0 0 4px;
+}
+
+/* Content */
+.stats-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stats-card-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stats-card-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--card-accent, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Optional Icon */
+.stats-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--card-bg, rgba(59, 130, 246, 0.08));
+  color: var(--card-accent, #3b82f6);
+  flex-shrink: 0;
+}
+
+.stats-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .stats-row {
+    gap: 12px;
+  }
+  
+  .stats-card {
+    min-width: 140px;
+    flex: 1 1 140px;
+    max-width: none;
+    padding: 16px 20px;
+  }
+  
+  .stats-card-value {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-card {
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+}

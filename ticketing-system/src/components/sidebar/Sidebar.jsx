@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 import './sidebarStyles.css';
 import omniLogo from '../../images/OmniLogo.png';
@@ -58,6 +59,10 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
     // control open state for small screens (off-canvas)
     const initialOpen = typeof window !== 'undefined' ? window.innerWidth > 1200 : true;
     const [isOpen, setIsOpen] = useState(initialOpen);
+    
+    // Get auth context
+    const { user, logout } = useAuth();
+    
     useEffect(() => {
         const handler = () => setIsOpen(s => !s);
         window.addEventListener('toggleSidebar', handler);
@@ -89,10 +94,11 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
     }, []);
     const navigate = useNavigate();
 
-    // Determine current user role:
-    // Priority: localStorage.currentUserRole -> infer from URL path (/user, /manager, /admin) -> default to 'ADMIN'
-    let rawRole = null;
-    try { rawRole = typeof window !== 'undefined' ? localStorage.getItem('currentUserRole') : null; } catch (e) { rawRole = null; }
+    // Determine current user role from auth context, then fallback to localStorage or URL path
+    let rawRole = user?.role || null;
+    if (!rawRole) {
+        try { rawRole = typeof window !== 'undefined' ? localStorage.getItem('currentUserRole') : null; } catch (e) { rawRole = null; }
+    }
     const roleFromStorage = rawRole ? String(rawRole).toUpperCase() : null;
     let roleFromPath = null;
     try {
@@ -209,9 +215,11 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
         <div className={`sidebar-backdrop ${isOpen ? 'show' : ''}`} onClick={()=>setIsOpen(false)} aria-hidden />
         <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`} aria-label="Admin navigation">
             <div className="branding">
-                <img src={omniLogo} alt="Omni Logo" className="brand-logo" />
+                <div className="brand-logo-wrap">
+                    <img src={omniLogo} alt="Omni Logo" className="brand-logo" />
+                </div>
                 <div className="brand-text">
-                    <div className="brand-title">Admin</div>
+                    <div className="brand-title">OmniTrack</div>
                     <div className="brand-sub">Tickets & Notifications</div>
                 </div>
             </div>
@@ -226,8 +234,10 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
                         // Only show Dashboard, My Tickets, My SLA for users (in that order)
                         const desired = ['dashboard', 'mytickets', 'mysla'];
                         finalItems = desired.map(k => items.find(it => it.key === k)).filter(Boolean);
-                    } else if (userRole === 'MANAGER' || userRole === 'EXECUTIVE') {
-                        // Manager/Executive menu
+                    } else if (userRole === 'MANAGER') {
+                        const desired = ['dashboard', 'mytickets', 'mysla'];
+                        finalItems = desired.map(k => items.find(it => it.key === k)).filter(Boolean);
+                    } else if (userRole === 'EXECUTIVE') {
                         const desired = ['dashboard', 'mytickets', 'mysla', 'pendingApproval'];
                         finalItems = desired.map(k => items.find(it => it.key === k)).filter(Boolean);
                     } else {
@@ -276,9 +286,26 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
             </div>
 
             <div className="sidebar-footer">
+                {user && (
+                    <div className="sidebar-user-card">
+                        <div className="user-avatar">
+                            {(user.name || user.email || 'U').charAt(0)}
+                        </div>
+                        <div className="user-info">
+                            <div className="user-name">{user.name || user.email}</div>
+                            <span className="user-role-chip">{(user.role || 'User').toLowerCase()}</span>
+                        </div>
+                    </div>
+                )}
                 <button
                     className="signout-btn"
-                    onClick={() => {
+                    onClick={async () => {
+                        // Call auth context logout
+                        try {
+                            await logout();
+                        } catch (e) {
+                            console.error('Logout error:', e);
+                        }
                         // Allow parent to handle sign out if provided via onNavigate
                         try {
                             onNavigate('signout');

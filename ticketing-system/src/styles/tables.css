@@ -14,32 +14,20 @@
 	border-radius: 16px;
 	overflow: hidden;
 	border: 1px solid rgba(148,163,184,0.16);
-	background: linear-gradient(145deg, rgba(248,250,252,0.92), rgba(226,232,240,0.55));
-	box-shadow:
-		inset 10px 10px 18px rgba(15,23,42,0.10),
-		inset -10px -10px 18px rgba(255,255,255,0.92);
+	background: #ffffff;
+	box-shadow: 0 4px 12px rgba(2,6,23,0.05);
 	position:relative;
-}
-
-.table-wrap::before{
-	content:'';
-	position:absolute;
-	inset:1px;
-	border-radius:15px;
-	pointer-events:none;
-	background: radial-gradient(120px 70px at 18% 10%, rgba(255,255,255,0.72), transparent 60%);
-	mix-blend-mode: overlay;
-	opacity: .9;
 }
 
 .user-tickets-table{
 	width: 100%;
 	border-collapse: separate;
 	border-spacing: 0;
+	color: #0f172a;
 }
 
 .user-tickets-table thead th{
-	background: linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.78));
+	background: #f8fafc;
 	color: #475569;
 	font-size: 12px;
 	text-transform: uppercase;
@@ -57,8 +45,8 @@
 	vertical-align: middle;
 }
 
-.user-tickets-table tbody tr:nth-child(odd){ background: rgba(255,255,255,0.55) }
-.user-tickets-table tbody tr:hover{ background: rgba(59,130,246,0.09) }
+.user-tickets-table tbody tr:nth-child(odd){ background: #fafbfc }
+.user-tickets-table tbody tr:hover{ background: rgba(59,130,246,0.06) }
 
 /* common columns used around the app */
 .id-col{ width: 90px; white-space: nowrap; font-weight: 500; color: #0f172a }

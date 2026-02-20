@@ -1,6 +1,7 @@
 .admin-page {
   display: flex;
   min-height: 100vh;
+  color: #0f172a;
 }
 
 /* adopt the sign-in neomorphic palette */

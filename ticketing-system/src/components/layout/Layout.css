@@ -1,0 +1,66 @@
+/* Shared Layout Styles */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.layout-main {
+  flex: 1;
+  margin-left: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  color: #0f172a;
+}
+
+.layout-content {
+  flex: 1;
+  padding: 10px 24px;
+  padding-top: 10px; /* Account for fixed TopNav */
+  color: #0f172a;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  position: relative;
+}
+
+/* Separator line below TopNav */
+.layout-content::before {
+  content: '';
+  position: absolute;
+  top: 64px; /* Position below the TopNav */
+  left: 0;
+  right: 0;
+  height: 1px;
+  /* background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.25) 10%, rgba(148, 163, 184, 0.25) 90%, transparent); */
+}
+
+/* Auth layout - centered content without sidebar */
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.auth-layout-content {
+  width: 100%;
+  max-width: 480px;
+  padding: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .layout-main {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout-content {
+    padding: 16px;
+    padding-top: 72px;
+  }
+}

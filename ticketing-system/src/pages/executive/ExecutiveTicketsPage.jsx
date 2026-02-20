@@ -1,9 +1,9 @@
 import React from 'react';
 import ManagerTicketsPage from '../manager/ManagerTicketsPage';
 
-// Executive: same “My Tickets” UI as manager (assigned to me).
+// Executive: all-organisation tickets view (no department filter) + personal assigned-to-me tab.
 const ExecutiveTicketsPage = () => {
-  return <ManagerTicketsPage />;
+  return <ManagerTicketsPage bypassDeptFilter />;
 };
 
 export default ExecutiveTicketsPage;

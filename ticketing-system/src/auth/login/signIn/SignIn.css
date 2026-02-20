@@ -26,10 +26,26 @@ body {
   width: 100%;
 }
 
+/* Auth pages must be fixed (no scrolling) */
+html.auth-page,
+body.auth-page {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.auth-page {
+  position: fixed;
+  width: 100%;
+}
+
 .signin-container {
   display: flex;
+  flex-direction: row-reverse;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
 }
 
 /* Left Side with Animation */
@@ -38,19 +54,21 @@ body {
   background-color: var(--bg-color);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   
   position: relative;
   overflow: hidden;
+  padding-left: 64px;
 }
 
 .animation-container {
-  width: 80%;
-  height: 80%;
+  width: min(520px, 80%);
+  height: min(520px, 80%);
   max-width: 600px;
   max-height: 600px;
   position: relative;
   z-index: 2;
+  margin-right: auto;
 }
 
 /* Right Side with Login Form */
@@ -60,21 +78,32 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 40px 70px 70px 70px;
-  align-items: flex-start; /* ensure content aligns to the top/start */
+  padding: 32px 56px 56px 56px;
+  align-items: center; /* center logo + card within right panel */
+  /* slightly lighter panel to separate from left side (uses existing tokens only) */
+  background: linear-gradient(180deg, var(--shadow-light) 0%, var(--bg-color) 70%);
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.04);
+
+  /* keep logo + card consistently sized/aligned */
+  --auth-card-width: 380px;
 }
 
 /* Logo Container */
 .logo-container {
-  position: fixed; /* pin to viewport top-left */
-  left: 410px;
+  position: static;
+  width: min(100%, var(--auth-card-width));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+  margin-bottom: 14px;
   z-index: 1100;
   pointer-events: auto; /* allow click if we make it a link later */
 }
 
 /* Logo sizing */
 .logo {
-  height: 170px; /* larger on desktop */
+  height: 132px;
   width: auto;
   display: block;
 }
@@ -85,18 +114,18 @@ body {
   display: flex;
   align-items: flex-start; /* move the card toward the top */
   justify-content: center;
-  padding-top: 70px; /* reduced padding so the card sits near the top */
+  padding-top: 0;
+  width: 100%;
 }
 
 /* Neomorphism Card */
 .login-card {
   width: 100%;
-  max-width: 400px;
-  padding: 40px;
+  max-width: var(--auth-card-width);
+  padding: 28px;
   background: var(--bg-color);
-  border-radius: 30px;
-  /* slightly larger nudge to the right for visual offset on wider screens */
-  margin-left: 40px;
+  border-radius: 24px;
+  margin-left: 0;
   box-shadow: 
     20px 20px 60px var(--shadow-dark),
     -20px -20px 60px var(--shadow-light);
@@ -110,26 +139,26 @@ body {
 }
 
 .card-header {
-  text-align: center;
-  margin-bottom: 32px;
+  text-align: left;
+  margin-bottom: 20px;
 }
 
 .welcome-title {
-  font-size: 28px;
+  font-size: 24px;
   color: var(--text-primary);
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .welcome-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
 }
 
 /* Form Styles */
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -149,10 +178,10 @@ input[type="email"],
 input[type="password"],
 input[type="text"] {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: var(--bg-color);
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   font-size: 14px;
   color: var(--text-primary);
   box-shadow: 
@@ -187,11 +216,11 @@ input.error {
 
 /* Neomorphism Button */
 .show-password-btn {
-  padding: 10px 16px;
+  padding: 9px 14px;
   background: var(--bg-color);
   border: none;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -214,8 +243,8 @@ input.error {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
-  font-size: 14px;
+  margin-bottom: 18px;
+  font-size: 13px;
 }
 
 .checkbox-label {
@@ -285,11 +314,11 @@ input.error {
 /* Login Button */
 .login-button {
   width: 100%;
-  padding: 16px;
+  padding: 13px 14px;
   background: var(--bg-color);
   border: none;
-  border-radius: 16px;
-  font-size: 15px;
+  border-radius: 14px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
   cursor: pointer;
@@ -297,7 +326,7 @@ input.error {
     8px 8px 16px var(--shadow-dark),
     -8px -8px 16px var(--shadow-light);
   transition: all 0.2s ease;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .login-button:hover:not(:disabled) {
@@ -351,10 +380,10 @@ input.error {
 .server-error {
   background-color: rgba(229, 62, 62, 0.1);
   color: var(--error-color);
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-radius: 12px;
   font-size: 13px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   text-align: center;
 }
 
@@ -377,7 +406,7 @@ input.error {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .signin-container {
-    flex-direction: column;
+    flex-direction: column-reverse;
   }
   
   .left-side {
@@ -388,13 +417,12 @@ input.error {
   .right-side {
     height: 60vh;
     min-height: 400px;
+    padding: 24px;
   }
   
   .logo-container {
-    position: relative;
-    top: 0;
-    left: 0;
-    margin-bottom: 20px;
+    width: min(100%, var(--auth-card-width));
+    margin-bottom: 14px;
   }
 
   /* scale logo down on tablet */
@@ -403,7 +431,7 @@ input.error {
   }
   
   .login-card-container {
-    padding-top: 20px;
+    padding-top: 12px;
   }
 
   /* Remove the horizontal nudge on narrower screens so the card remains centered */
@@ -448,7 +476,7 @@ input.error {
 
 @media (max-width: 480px) {
   .signin-container {
-    flex-direction: column;
+    flex-direction: column-reverse;
     height: auto;
     min-height: 100vh;
   }

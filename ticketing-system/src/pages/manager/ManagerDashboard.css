@@ -1,5 +1,6 @@
 :root{ --green:#10b981; --red:#ef4444; --blue:#3b82f6; }
-.manager-page .manager-panel{ padding:18px; border-radius:12px; background:rgba(255,255,255,0.6); backdrop-filter:blur(6px); }
+.manager-page{ color:#0f172a; }
+.manager-page .manager-panel{ padding:18px; border-radius:12px; background:rgba(255,255,255,0.6); backdrop-filter:blur(6px); color:#0f172a; }
 .um-table{ width:100%; margin-top:8px }
 .um-row.head .um-cell{ font-weight:700 }
 .um-cell{ padding:8px 10px }
@@ -147,4 +148,53 @@
 .decline-form-wrap .decline-reason:focus{
 	border-color: rgba(59,130,246,0.55);
 	box-shadow: 0 0 0 4px rgba(59,130,246,0.18);
+}
+
+/* ── Manager tab toggle ───────────────────────────────── */
+.mgr-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+  background: rgba(241,245,249,0.7);
+  border-radius: 14px;
+  padding: 5px;
+  width: fit-content;
+}
+
+.mgr-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  line-height: 1;
+}
+
+.mgr-tab:hover {
+  background: rgba(255,255,255,0.7);
+  color: #0f172a;
+}
+
+.mgr-tab.active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(2,6,23,0.10);
+}
+
+.mgr-tab-badge {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

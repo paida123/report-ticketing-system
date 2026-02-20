@@ -20,6 +20,21 @@ const SignUp = () => {
   const leftLottieRef = useRef(null);
   const navigate = useNavigate();
 
+  // Disable scrolling while on auth page
+  useEffect(() => {
+    try {
+      document.documentElement.classList.add('auth-page');
+      document.body.classList.add('auth-page');
+    } catch (e) {}
+
+    return () => {
+      try {
+        document.documentElement.classList.remove('auth-page');
+        document.body.classList.remove('auth-page');
+      } catch (e) {}
+    };
+  }, []);
+
   const validate = () => {
     const e = {};
     if (!tempPassword) e.tempPassword = 'Temporary password is required';

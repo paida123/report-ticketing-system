@@ -1,9 +1,9 @@
 import React from 'react';
-import UserSlaPage from '../user/UserSlaPage/UserSlaPage';
+import ManagerSlaPage from '../manager/ManagerSlaPage';
 
-// Executive: reuse the same SLA page UI/logic.
+// Executive: all-organisation SLA view (no department filter) + personal My SLA tab.
 const ExecutiveSlaPage = () => {
-  return <UserSlaPage />;
+  return <ManagerSlaPage bypassDeptFilter />;
 };
 
 export default ExecutiveSlaPage;

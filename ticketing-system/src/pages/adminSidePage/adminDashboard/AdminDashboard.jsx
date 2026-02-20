@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import Sidebar from "../../../components/sidebar/Sidebar";
-import TopNav from "../../../components/topnav/TopNav";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -179,12 +177,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="admin-page">
-      <Sidebar />
-
-      <main className="admin-main">
-        <TopNav initials="AD" userName="Administrator" pageTitle="Dashboard Overview" />
-
+    <>
         {/* KPI Cards */}
         <section className="kpi-grid">
           {kpis.map((k) => (
@@ -269,8 +262,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         </section>
-      </main>
-    </div>
+    </>
   );
 };
 

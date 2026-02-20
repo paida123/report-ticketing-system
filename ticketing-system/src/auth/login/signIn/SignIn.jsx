@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import "./SignIn.css";
 import lottie from 'lottie-web';
 import animationData from '../../../images/login with account (1).json';
 import omniLogo from '../../../images/OmniLogo.png';
 import animatedData2 from '../../../images/Login (2).json';
+import { useAuth, getDashboardByRole } from '../../../context/AuthContext';
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -17,6 +18,33 @@ const SignIn = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const lottieContainer = useRef(null);
   const leftLottieRef = useRef(null);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isAuthenticated, user } = useAuth();
+
+  // Disable scrolling while on auth page
+  useEffect(() => {
+    try {
+      document.documentElement.classList.add('auth-page');
+      document.body.classList.add('auth-page');
+    } catch (e) {}
+
+    return () => {
+      try {
+        document.documentElement.classList.remove('auth-page');
+        document.body.classList.remove('auth-page');
+      } catch (e) {}
+    };
+  }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const redirectPath = location.state?.from?.pathname || getDashboardByRole(user.role);
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate, location]);
 
   const validate = () => {
     const e = {};
@@ -72,18 +100,40 @@ const SignIn = () => {
     setServerError("");
 
     try {
-      await new Promise((res) => setTimeout(res, 600));
-      console.log("Login payload:", { email, password, rememberMe });
+      const result = await login({ email, password });
 
-      navigate('/admin');
-    } catch {
+      if (result.success) {
+        // Check if MFA is required
+        if (result.mfaRequired && result.mfaEnabled && result.mfaVerified) {
+          // MFA challenge needed - redirect to MFA page
+          navigate('/mfa-challenge');
+          return;
+        }
+
+        if (result.mfaRequired && result.mfaEnabled && !result.mfaVerified) {
+          // MFA setup needed
+          navigate('/mfa-setup');
+          return;
+        }
+
+        if (result.passPending) {
+          // Password change required
+          navigate('/change-password');
+          return;
+        }
+
+        // Navigate to appropriate dashboard based on role
+        const dashboardPath = getDashboardByRole(result.user.role);
+        navigate(dashboardPath, { replace: true });
+      } else {
+        setServerError(result.message);
+      }
+    } catch (error) {
       setServerError("Login failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const navigate = useNavigate();
 
   return (
     <div className="signin-container">
