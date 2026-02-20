@@ -3,8 +3,8 @@ import { apiUrl } from "../api/api";
 class SlaService {
 
    
-    getAllSla() {
-        return apiUrl.get("sla/getAll");
+    getAllSla(params = {}) {
+        return apiUrl.get("sla/getAll", { params });
     }
 
 }

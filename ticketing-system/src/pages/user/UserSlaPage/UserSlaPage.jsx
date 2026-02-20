@@ -16,12 +16,14 @@ const getMedal = (score) => {
 
 const gradeColor = (g) => {
   switch ((g || "").toUpperCase()) {
-    case "A": return "#10b981";
-    case "B": return "#3b82f6";
-    case "C": return "#f59e0b";
-    default:  return "#ef4444";
+    case "EXCELLENT":  return "#10b981";
+    case "ON_TARGET":  return "#3b82f6";
+    case "POOR":       return "#ef4444";
+    default:           return "#94a3b8";
   }
 };
+
+const isMet = (r) => r.grade === "EXCELLENT" || r.grade === "ON_TARGET";
 
 /*  Component  */
 const UserSlaPage = () => {
@@ -34,7 +36,7 @@ const UserSlaPage = () => {
   const loadSla = useCallback(() => {
     setLoading(true);
     setLoadErr("");
-    SlaService.getAllSla()
+    SlaService.getAllSla({ limit: 100 })
       .then(r => {
         const d = r?.data;
         setSlaData(Array.isArray(d?.data) ? d.data : []);
@@ -54,7 +56,7 @@ const UserSlaPage = () => {
   const stats = useMemo(() => {
     if (!slaData.length) return { total: 0, met: 0, breached: 0, score: 1 };
     const total    = slaData.length;
-    const met      = slaData.filter(r => r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla).length;
+    const met      = slaData.filter(r => isMet(r)).length;
     const breached = total - met;
     const score    = total > 0 ? met / total : 1;
     return { total, met, breached, score };
@@ -199,7 +201,7 @@ const UserSlaPage = () => {
                   ))}
 
                   {!loading && filtered.map((r, i) => {
-                    const met    = r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla;
+                    const met    = isMet(r);
                     const gColor = gradeColor(r.grade);
                     return (
                       <tr key={r.ticket_id || i} onClick={() => setSelected(r)}>
@@ -249,7 +251,7 @@ const UserSlaPage = () => {
         <div className="sla-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}>
           <div className="sla-modal">
             {(() => {
-              const met    = selected.actual_sla != null && selected.expected_sla != null && selected.actual_sla <= selected.expected_sla;
+              const met    = isMet(selected);
               const gColor = gradeColor(selected.grade);
               return (
                 <>

@@ -18,6 +18,17 @@ const getMedal = (score) => {
   return               { label: 'Fail',   emoji: '❌', cls: 'fail',   color: '#ef4444', desc: 'Below standard' };
 };
 
+// SLA grade helpers — grade field from backend: EXCELLENT | ON_TARGET | POOR
+const slaGradeColor = (g) => {
+  switch ((g || '').toUpperCase()) {
+    case 'EXCELLENT': return '#10b981';
+    case 'ON_TARGET': return '#3b82f6';
+    case 'POOR':      return '#ef4444';
+    default:          return '#94a3b8';
+  }
+};
+const slaIsMet = (r) => r.grade === 'EXCELLENT' || r.grade === 'ON_TARGET';
+
 // Maps backend status strings → display label + CSS class + hex colour
 const statusMeta = (s) => {
   switch (s) {
@@ -61,6 +72,7 @@ const UserDashboard = () => {
   // ─── SLA data ────────────────────────────────────────────────────────────────
   const [slaData, setSlaData]       = useState([]);
   const [slaLoading, setSlaLoading] = useState(true);
+  const [slaError, setSlaError]     = useState('');
 
   // ─── Load tickets from API ───────────────────────────────────────────────────
   const loadTickets = useCallback(() => {
@@ -92,9 +104,10 @@ const UserDashboard = () => {
   // ─── Load SLA data ───────────────────────────────────────────────────────────
   const loadSla = useCallback(() => {
     setSlaLoading(true);
-    SlaService.getAllSla()
+    setSlaError('');
+    SlaService.getAllSla({ limit: 100 })
       .then(r => { const d = r?.data; setSlaData(Array.isArray(d?.data) ? d.data : []); })
-      .catch(() => {})
+      .catch(() => setSlaError('Failed to load SLA data. Please refresh.'))
       .finally(() => setSlaLoading(false));
   }, []);
 
@@ -127,7 +140,9 @@ const UserDashboard = () => {
   const rejected   = byStatus('REJECTED');
 
   // ─── SLA filtered to the logged-in user's own tickets ───────────────────────
-  // Backend now scopes USER SLA records to tickets created by the user,
+  // Backend scopes USER SLA records to a union of:
+  // - tickets created by the user, and
+  // - SLA rows where the user is the actor (service_level_agreement.user_id)
   // so slaData already contains the right records.
   const mySlaData = slaData;
 
@@ -384,7 +399,7 @@ const UserDashboard = () => {
           {/* ── Overall SLA Performance — spans full row ── */}
           {(() => {
             const total    = mySlaData.length;
-            const met      = mySlaData.filter(r => r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla).length;
+            const met      = mySlaData.filter(r => slaIsMet(r)).length;
             const breached = total - met;
             const score    = total > 0 ? met / total : 1;
             const medal    = getMedal(score);
@@ -401,7 +416,9 @@ const UserDashboard = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 18 }} title={medal.label}>{medal.emoji}</span>
-                    <span className="ts-badge" style={{ background: medal.color + '1a', color: medal.color }}>{slaLoading ? '…' : `${pct}%`}</span>
+                    <span className="ts-badge" style={{ background: medal.color + '1a', color: medal.color }}>
+                      {slaLoading ? '…' : (slaError ? '—' : `${pct}%`)}
+                    </span>
                   </div>
                 </div>
 
@@ -409,14 +426,16 @@ const UserDashboard = () => {
                 <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
                     <div style={{ flex: 1, height: 7, borderRadius: 99, background: '#f1f5f9', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 99, width: slaLoading ? '0%' : `${pct}%`, background: `linear-gradient(90deg,${medal.color},${medal.color}bb)`, transition: 'width 0.6s ease' }} />
+                      <div style={{ height: '100%', borderRadius: 99, width: (slaLoading || slaError) ? '0%' : `${pct}%`, background: `linear-gradient(90deg,${medal.color},${medal.color}bb)`, transition: 'width 0.6s ease' }} />
                     </div>
-                    <span style={{ fontWeight: 800, fontSize: 13, color: medal.color, minWidth: 38, textAlign: 'right' }}>{slaLoading ? '…' : `${pct}%`}</span>
+                    <span style={{ fontWeight: 800, fontSize: 13, color: medal.color, minWidth: 38, textAlign: 'right' }}>
+                      {slaLoading ? '…' : (slaError ? '—' : `${pct}%`)}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#64748b' }}>
-                    <span>Total: <strong style={{ color: '#111827' }}>{slaLoading ? '…' : total}</strong></span>
-                    <span>Met: <strong style={{ color: '#10b981' }}>{slaLoading ? '…' : met}</strong></span>
-                    <span>Breached: <strong style={{ color: '#ef4444' }}>{slaLoading ? '…' : breached}</strong></span>
+                    <span>Total: <strong style={{ color: '#111827' }}>{slaLoading ? '…' : (slaError ? '—' : total)}</strong></span>
+                    <span>Met: <strong style={{ color: '#10b981' }}>{slaLoading ? '…' : (slaError ? '—' : met)}</strong></span>
+                    <span>Breached: <strong style={{ color: '#ef4444' }}>{slaLoading ? '…' : (slaError ? '—' : breached)}</strong></span>
                     <span style={{ marginLeft: 'auto', fontWeight: 700, color: medal.color }}>{medal.emoji} {medal.label} — {medal.desc}</span>
                   </div>
                 </div>
@@ -425,9 +444,10 @@ const UserDashboard = () => {
                 <div className="ts-col-head ts-head-sla"><span>ID</span><span>Officer</span><span>Status · Grade</span></div>
                 <div className="ts-body">
                   {slaLoading ? <SkeletonRows />
+                    : slaError ? <EmptyState msg={slaError} />
                     : topFive.length ? topFive.map((r, i) => {
-                        const isMet  = r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla;
-                        const gc     = r.grade ? (r.grade.toUpperCase() === 'A' ? '#10b981' : r.grade.toUpperCase() === 'B' ? '#3b82f6' : r.grade.toUpperCase() === 'C' ? '#f59e0b' : '#ef4444') : '#94a3b8';
+                        const isMet  = slaIsMet(r);
+                        const gc     = slaGradeColor(r.grade);
                         return (
                           <div className="ts-card ts-card-sla" key={r.ticket_id || i} role="listitem">
                             <span className="tc-id" title={r.ticket_id} style={{ fontSize: 11 }}>{(r.ticket_id || '').slice(0, 12)}</span>
