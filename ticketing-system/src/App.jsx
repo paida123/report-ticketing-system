@@ -27,6 +27,7 @@ import UserSlaPage from './pages/user/UserSlaPage/UserSlaPage'
 import ManagerDashboard from './pages/manager/ManagerDashboard'
 import ManagerTicketsPage from './pages/manager/ManagerTicketsPage'
 import ManagerSlaPage from './pages/manager/ManagerSlaPage'
+import PendingApprovalPage from './pages/manager/PendingApprovalPage'
 
 // Executive pages
 import ExecutiveDashboard from './pages/executive/ExecutiveDashboard'
@@ -87,13 +88,14 @@ function App() {
 
           {/* Manager routes - nested under ManagerLayout */}
           <Route path="/manager" element={
-            <ProtectedRoute allowedRoles={['manager']}>
+            <ProtectedRoute allowedRoles={['manager', 'officer']}>
               <ManagerLayout />
             </ProtectedRoute>
           }>
             <Route index element={<ManagerDashboard />} />
             <Route path="tickets" element={<ManagerTicketsPage />} />
             <Route path="sla" element={<ManagerSlaPage />} />
+            <Route path="pending-approval" element={<PendingApprovalPage />} />
           </Route>
 
           {/* Executive routes - nested under ExecutiveLayout */}

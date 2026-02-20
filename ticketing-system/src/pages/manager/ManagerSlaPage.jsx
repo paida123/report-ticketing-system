@@ -107,15 +107,17 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
   /* ── Filtered SLA sets ────────────────────────────────────────────────── */
   // Use ticket_department from the backend response (avoids mismatches from
   // a separate allTickets fetch with pagination limits).
+  // Officers see all SLA records, managers see only their department
+  const isOfficer = user?.role?.toLowerCase() === 'officer';
   const deptSlaRecords = useMemo(() =>
-    bypassDeptFilter
+    (bypassDeptFilter || isOfficer)
       ? slaData
       : managerDept
         ? slaData.filter(r =>
             String(r.ticket_department || '').toUpperCase() === managerDept
           )
         : slaData,
-    [slaData, managerDept, bypassDeptFilter]
+    [slaData, managerDept, bypassDeptFilter, isOfficer, user]
   );
 
   /* Build the set of ticket IDs where the logged-in manager is the assigned officer.
@@ -183,7 +185,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
         title="SLA"
         subtitle={
           activeTab === 'department'
-            ? bypassDeptFilter
+            ? (bypassDeptFilter || isOfficer)
               ? 'Organisation-wide SLA compliance overview'
               : (managerDept ? `Department: ${managerDept} — SLA compliance overview` : 'All department SLA records')
             : 'Your personal SLA compliance and performance rating'
@@ -200,8 +202,8 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
             <path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             <path d="M9 21v-6h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          {bypassDeptFilter ? 'All Records' : 'Department View'}
-          {!bypassDeptFilter && !deptLoading && managerDept && (
+          {(bypassDeptFilter || isOfficer) ? 'All Records' : 'Department View'}
+          {!(bypassDeptFilter || isOfficer) && !deptLoading && managerDept && (
             <span className="mgr-tab-badge">{managerDept}</span>
           )}
           <span style={{ marginLeft: 6, background: activeTab === 'department' ? '#3b82f6' : '#e5e7eb', color: activeTab === 'department' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>

@@ -163,9 +163,32 @@ const UserDashboard = () => {
 
   // ─── KPI modal ────────────────────────────────────────────────────────────────
   const [modalFilter, setModalFilter] = useState('All');
-  const openKpiModal  = (key) => { setModalFilter('All'); setKpiModalKey(key); setKpiModalOpen(true); };
-  const closeKpiModal = ()    => { setKpiModalOpen(false); setKpiModalKey(null); };
-  const modalDef = KPI_DEFS.find(k => k.key === kpiModalKey) || { label: 'Details', items: [] };
+  const [modalSearch, setModalSearch] = useState('');
+  const openKpiModal  = (key) => { 
+    console.log('Opening KPI modal:', key); 
+    setModalFilter('All'); 
+    setModalSearch(''); 
+    setKpiModalKey(key); 
+    setKpiModalOpen(true); 
+  };
+  const closeKpiModal = ()    => { 
+    console.log('Closing KPI modal'); 
+    setKpiModalOpen(false); 
+    setKpiModalKey(null); 
+  };
+  const modalDef = KPI_DEFS.find(k => k.key === kpiModalKey) || { label: 'Details', items: [], color: 'blue' };
+
+  const modalItems = (modalDef.items || [])
+    .filter(t => kpiModalKey !== 'active' || modalFilter === 'All' || t.status === modalFilter)
+    .filter(t => {
+      const q = modalSearch.trim().toLowerCase();
+      if (!q) return true;
+      const id = String(t?.id ?? '').toLowerCase();
+      const title = String(t?.title ?? '').toLowerCase();
+      const status = String(t?.status ?? '').toLowerCase();
+      const typeTitle = String(t?.ticket_type?.title ?? '').toLowerCase();
+      return id.includes(q) || title.includes(q) || status.includes(q) || typeTitle.includes(q);
+    });
 
   // ─── Create ticket helpers ───────────────────────────────────────────────────
   const ctSet   = (k, v) => { setCtForm(f => ({ ...f, [k]: v })); setCtTouched(t => ({ ...t, [k]: true })); };
@@ -308,8 +331,10 @@ const UserDashboard = () => {
             <div className="ts-footer">
               <span className="ts-footer-count">{!ticketsLoading && pending.length > 3 ? `+${pending.length - 3} more` : ''}</span>
               {!ticketsLoading && pending.length > 0 && (
-                <button className="ts-footer-btn" onClick={() => openKpiModal('pending')}>
-                  View all <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                <button className="ts-footer-btn" onClick={() => openKpiModal('pending')} style={{ gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
               )}
             </div>
@@ -335,8 +360,10 @@ const UserDashboard = () => {
             <div className="ts-footer">
               <span className="ts-footer-count">{!ticketsLoading && active.length > 3 ? `+${active.length - 3} more` : ''}</span>
               {!ticketsLoading && active.length > 0 && (
-                <button className="ts-footer-btn" onClick={() => openKpiModal('active')}>
-                  View all <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                <button className="ts-footer-btn" onClick={() => openKpiModal('active')} style={{ gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
               )}
             </div>
@@ -362,8 +389,10 @@ const UserDashboard = () => {
             <div className="ts-footer">
               <span className="ts-footer-count">{!ticketsLoading && resolved.length > 3 ? `+${resolved.length - 3} more` : ''}</span>
               {!ticketsLoading && resolved.length > 0 && (
-                <button className="ts-footer-btn" onClick={() => openKpiModal('resolved')}>
-                  View all <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                <button className="ts-footer-btn" onClick={() => openKpiModal('resolved')} style={{ gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
               )}
             </div>
@@ -389,8 +418,10 @@ const UserDashboard = () => {
             <div className="ts-footer">
               <span className="ts-footer-count">{!ticketsLoading && rejected.length > 3 ? `+${rejected.length - 3} more` : ''}</span>
               {!ticketsLoading && rejected.length > 0 && (
-                <button className="ts-footer-btn" onClick={() => openKpiModal('rejected')}>
-                  View all <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                <button className="ts-footer-btn" onClick={() => openKpiModal('rejected')} style={{ gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
               )}
             </div>
@@ -474,7 +505,7 @@ const UserDashboard = () => {
             const descMax = 1000;
             return (
               <div role="dialog" aria-modal="true" aria-label="Create new ticket"
-                style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, background: 'rgba(2,6,23,0.45)', backdropFilter: 'blur(3px)' }}
+                style={{ position: 'fixed', top: 0, left: 260, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, background: 'rgba(2,6,23,0.45)', backdropFilter: 'blur(3px)' }}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitCreateTicket(); }}
               >
                 <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 560, boxShadow: '0 32px 64px rgba(2,6,23,0.22)', display: 'flex', flexDirection: 'column', maxHeight: '92vh', overflow: 'hidden' }}>
@@ -543,7 +574,7 @@ const UserDashboard = () => {
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 700, color: '#1e40af', fontSize: 13 }}>{selectedType.title}</div>
                             <div style={{ color: '#4b5563', fontSize: 12, marginTop: 3 }}>
-                              {selectedType.departments?.department && <span style={{ marginRight: 10 }}>Dept: <strong>{selectedType.departments.department}</strong></span>}
+                              {selectedType.departmental?.department && <span style={{ marginRight: 10 }}>Dept: <strong>{selectedType.departmental.department}</strong></span>}
                               {selectedType.approval_required
                                 ? <span style={{ color: '#92400e' }}>Requires <strong>{selectedType.approval_count}</strong> approval{selectedType.approval_count !== 1 ? 's' : ''}</span>
                                 : <span style={{ color: '#065f46' }}>No approval needed</span>}
@@ -569,7 +600,10 @@ const UserDashboard = () => {
                         style={{ ...inputStyle(false), boxShadow: ctFocus === 'assigned_to' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none', borderColor: ctFocus === 'assigned_to' ? '#93c5fd' : '#e5e7eb', cursor: 'pointer', color: ctForm.assigned_to ? '#111827' : '#9ca3af' }}
                       >
                         <option value="">{officersLoading ? 'Loading officers…' : '— Auto-assign (recommended) —'}</option>
-                        {officers.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{u.department ? ` · ${u.department}` : ''}</option>)}
+                        {officers.map(u => {
+                          const deptName = typeof u.department === 'string' ? u.department : u.department?.department;
+                          return <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{deptName ? ` · ${deptName}` : ''}</option>;
+                        })}
                       </select>
                       <div style={{ marginTop: 7, fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#9ca3af" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -601,119 +635,370 @@ const UserDashboard = () => {
         {/* ── View Ticket Modal ── */}
         {selected && createPortal(
           <div role="dialog" aria-modal="true"
-            style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 70, background: 'rgba(2,6,23,0.50)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'fixed', top: 0, left: 260, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, background: 'rgba(2,6,23,0.65)', backdropFilter: 'blur(6px)', padding: '20px' }}
             onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}
           >
-            <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 600, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 32px 72px rgba(2,6,23,0.28)' }}
+            <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 920, maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 40px 100px rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.2)' }}
               onClick={e => e.stopPropagation()}>
               {(() => {
                 const m = statusMeta(selected.status);
                 const creatorInitials = (selected.created_by?.name || 'U').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+                
+                // Workflow stages based on ticket status
+                const getWorkflowSteps = () => {
+                  const allSteps = [
+                    { key: 'CREATED', label: 'Created', icon: '📝', statuses: ['PENDING_APPROVAL', 'QUEUED', 'PROCESSING', 'RESOLVED', 'CLOSED', 'REJECTED'] },
+                    { key: 'PENDING_APPROVAL', label: 'Pending Approval', icon: '⏳', statuses: ['PENDING_APPROVAL', 'QUEUED', 'PROCESSING', 'RESOLVED', 'CLOSED', 'REJECTED'] },
+                    { key: 'QUEUED', label: 'In Queue', icon: '📋', statuses: ['QUEUED', 'PROCESSING', 'RESOLVED', 'CLOSED'] },
+                    { key: 'PROCESSING', label: 'In Progress', icon: '⚙️', statuses: ['PROCESSING', 'RESOLVED', 'CLOSED'] },
+                    { key: 'FINAL', label: selected.status === 'REJECTED' ? 'Rejected' : selected.status === 'CLOSED' ? 'Closed' : 'Resolved', 
+                      icon: selected.status === 'REJECTED' ? '❌' : '✅', 
+                      statuses: ['RESOLVED', 'CLOSED', 'REJECTED'] }
+                  ];
+                  
+                  const currentStatus = selected.status;
+                  const currentIndex = allSteps.findIndex(step => step.statuses.includes(currentStatus));
+                  
+                  return allSteps.map((step, idx) => ({
+                    ...step,
+                    completed: idx < currentIndex || (idx === currentIndex && ['RESOLVED', 'CLOSED', 'REJECTED'].includes(currentStatus)),
+                    active: step.statuses.includes(currentStatus) && !['RESOLVED', 'CLOSED', 'REJECTED'].includes(currentStatus),
+                    isCurrent: idx === currentIndex
+                  }));
+                };
+                
+                const workflowSteps = getWorkflowSteps();
+                
                 return (
                   <>
                     {/* Header */}
-                    <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)', padding: '22px 28px', flexShrink: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <code style={{ background: 'rgba(255,255,255,0.12)', color: '#93c5fd', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontFamily: 'monospace', letterSpacing: '0.05em' }}>{selected.id}</code>
-                          <span style={{ background: m.color + '25', color: m.color, borderRadius: 8, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>{m.label}</span>
+                    <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '28px 32px', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 14 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                          <code style={{ background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(10px)', color: '#fff', padding: '6px 14px', borderRadius: 8, fontSize: 13, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.05em', border: '1px solid rgba(255,255,255,0.3)' }}>
+                            #{selected.id}
+                          </code>
+                          <span style={{ background: m.color + '35', backdropFilter: 'blur(10px)', color: '#fff', borderRadius: 10, padding: '6px 14px', fontSize: 12, fontWeight: 800, border: `1px solid ${m.color}50` }}>
+                            {m.label}
+                          </span>
                         </div>
                         <button onClick={() => setSelected(null)}
-                          style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.12)', color: '#94a3b8', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>×</button>
+                          style={{ 
+                            width: 36, 
+                            height: 36, 
+                            borderRadius: 10, 
+                            border: '2px solid rgba(255,255,255,0.3)', 
+                            background: 'rgba(255,255,255,0.2)', 
+                            backdropFilter: 'blur(10px)',
+                            color: '#fff', 
+                            cursor: 'pointer', 
+                            fontSize: 22, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            fontWeight: 700, 
+                            flexShrink: 0,
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                          onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                        >×</button>
                       </div>
-                      <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18, lineHeight: 1.35, marginBottom: 6 }}>{selected.title}</div>
-                      <div style={{ color: '#64748b', fontSize: 12 }}>Created {selected.created_at ? new Date(selected.created_at).toLocaleString() : '—'}</div>
+                      <div style={{ color: '#ffffff', fontWeight: 800, fontSize: 22, lineHeight: 1.35, marginBottom: 8, letterSpacing: '-0.01em' }}>
+                        {selected.title}
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>
+                        Created {selected.created_at ? new Date(selected.created_at).toLocaleString() : '—'}
+                        {selected.updated_at && selected.updated_at !== selected.created_at && (
+                          <> • Last updated {new Date(selected.updated_at).toLocaleString()}</>
+                        )}
+                      </div>
                     </div>
 
                     {/* Body */}
-                    <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }}>
+                    <div style={{ padding: '28px 32px', overflowY: 'auto', flex: 1, background: '#fafbfc' }}>
+                      
+                      {/* Workflow Stepper */}
+                      <div style={{ marginBottom: 28, background: '#fff', borderRadius: 16, padding: '24px', border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                          </svg>
+                          Ticket Workflow
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                          {/* Progress Line */}
+                          <div style={{ position: 'absolute', top: 24, left: 0, right: 0, height: 3, background: '#e5e7eb', borderRadius: 3, zIndex: 0 }}>
+                            <div style={{ 
+                              height: '100%', 
+                              background: 'linear-gradient(90deg, #667eea, #764ba2)', 
+                              borderRadius: 3,
+                              width: `${(workflowSteps.filter(s => s.completed).length / (workflowSteps.length - 1)) * 100}%`,
+                              transition: 'width 0.5s ease'
+                            }} />
+                          </div>
+                          
+                          {workflowSteps.map((step, idx) => (
+                            <div key={step.key} style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              alignItems: 'center', 
+                              flex: 1, 
+                              position: 'relative', 
+                              zIndex: 1 
+                            }}>
+                              <div style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: '50%',
+                                background: step.completed || step.isCurrent 
+                                  ? 'linear-gradient(135deg, #667eea, #764ba2)' 
+                                  : '#fff',
+                                border: `3px solid ${step.completed || step.isCurrent ? '#667eea' : '#e5e7eb'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 20,
+                                fontWeight: 700,
+                                marginBottom: 10,
+                                boxShadow: step.isCurrent ? '0 4px 12px rgba(102,126,234,0.3)' : 'none',
+                                transition: 'all 0.3s',
+                                transform: step.isCurrent ? 'scale(1.1)' : 'scale(1)'
+                              }}>
+                                {step.icon}
+                              </div>
+                              <div style={{ 
+                                fontSize: 12, 
+                                fontWeight: 700, 
+                                color: step.completed || step.isCurrent ? '#667eea' : '#94a3b8',
+                                textAlign: 'center',
+                                maxWidth: 100
+                              }}>
+                                {step.label}
+                              </div>
+                              {step.isCurrent && (
+                                <div style={{ 
+                                  marginTop: 6,
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  color: '#10b981',
+                                  background: '#d1fae5',
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  border: '1px solid #a7f3d0'
+                                }}>
+                                  Current
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Description */}
-                      <div style={{ marginBottom: 20 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Description</div>
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px', fontSize: 14, color: '#374151', lineHeight: 1.7, textIndent: '1em', wordBreak: 'break-word', maxHeight: 160, overflowY: 'auto' }}>
+                      <div style={{ marginBottom: 20, background: '#fff', borderRadius: 16, padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                          Description
+                        </div>
+                        <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, wordBreak: 'break-word' }}>
                           {selected.description || 'No description provided.'}
                         </div>
                       </div>
 
-                      {/* Info grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                      {/* Info Cards Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 20 }}>
 
-                        {/* Type */}
-                        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Ticket Type</div>
-                          <div style={{ fontWeight: 600, color: '#111827', fontSize: 14 }}>{selected.ticket_type?.title || '—'}</div>
+                        {/* Ticket Type */}
+                        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            🎫 Ticket Type
+                          </div>
+                          <div style={{ fontWeight: 700, color: '#111827', fontSize: 15, marginBottom: 8 }}>{selected.ticket_type?.title || '—'}</div>
                           {selected.ticket_type?.expected_sla_duration && (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#dbeafe', color: '#1d4ed8', borderRadius: 6, padding: '3px 8px', fontSize: 11, fontWeight: 700, marginTop: 6 }}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                              {selected.ticket_type.expected_sla_duration}h SLA
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', color: '#1e40af', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 800, marginTop: 4, border: '1px solid #93c5fd' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                              </svg>
+                              SLA: {selected.ticket_type.expected_sla_duration}h
                             </div>
                           )}
-                          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
+                          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8, fontWeight: 500 }}>
                             {selected.ticket_type?.approval_required
-                              ? `Requires ${selected.ticket_type.approval_count} approval${selected.ticket_type.approval_count !== 1 ? 's' : ''}`
-                              : 'No approval needed'}
+                              ? `⚡ Requires ${selected.ticket_type.approval_count} approval${selected.ticket_type.approval_count !== 1 ? 's' : ''}`
+                              : '✓ No approval needed'}
                           </div>
                         </div>
 
-                        {/* Status */}
-                        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Status</div>
-                          <span style={{ background: m.color + '1a', color: m.color, borderRadius: 8, padding: '5px 12px', fontSize: 13, fontWeight: 700 }}>{m.label}</span>
-                          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{selected.ticket_type?.department || '—'}</div>
+                        {/* Priority & Department */}
+                        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            📊 Status & Department
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                            <span style={{ background: m.color + '20', color: m.color, borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 800, border: `1.5px solid ${m.color}40`, display: 'inline-block' }}>
+                              {m.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>
+                            🏢 {selected.ticket_type?.departmental?.department || 'General'}
+                          </div>
                         </div>
 
                         {/* Created By */}
-                        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Created By</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{creatorInitials}</div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: '#111827', fontSize: 13 }}>{selected.created_by?.name || '—'}</div>
-                              <div style={{ fontSize: 11, color: '#6b7280' }}>{selected.created_by?.email || ''}</div>
-                              {selected.created_by?.department && <div style={{ fontSize: 11, color: '#9ca3af' }}>{selected.created_by.department}</div>}
+                        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            👤 Created By
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ 
+                              width: 40, 
+                              height: 40, 
+                              borderRadius: '50%', 
+                              background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', 
+                              color: '#fff', 
+                              fontSize: 14, 
+                              fontWeight: 800, 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              flexShrink: 0,
+                              border: '2px solid #e9d5ff'
+                            }}>
+                              {creatorInitials}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, color: '#111827', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {selected.created_by?.name || '—'}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {selected.created_by?.email || ''}
+                              </div>
+                              {selected.created_by?.department && (
+                                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                                  {typeof selected.created_by.department === 'string' 
+                                    ? selected.created_by.department 
+                                    : selected.created_by.department?.department || 'Unknown Department'}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
 
                         {/* Assigned Officer */}
-                        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Assigned Officer</div>
+                        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            👨‍💼 Assigned Officer
+                          </div>
                           {selected.assignment?.officer ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {`${selected.assignment.officer.first_name?.[0] || ''}${selected.assignment.officer.last_name?.[0] || ''}`.toUpperCase()}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ 
+                                width: 40, 
+                                height: 40, 
+                                borderRadius: '50%', 
+                                background: 'linear-gradient(135deg, #10b981, #059669)', 
+                                color: '#fff', 
+                                fontSize: 14, 
+                                fontWeight: 800, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                flexShrink: 0,
+                                border: '2px solid #d1fae5'
+                              }}>
+                                {selected.assignment.officer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'NA'}
                               </div>
-                              <div>
-                                <div style={{ fontWeight: 600, color: '#111827', fontSize: 13 }}>{selected.assignment.officer.first_name} {selected.assignment.officer.last_name}</div>
-                                <div style={{ fontSize: 11, color: '#6b7280' }}>{selected.assignment.officer.email}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, color: '#111827', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {selected.assignment.officer.name}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {selected.assignment.officer.email}
+                                </div>
                               </div>
                             </div>
                           ) : (
-                            <span style={{ color: '#9ca3af', fontSize: 13 }}>Not yet assigned</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', background: '#fef3c7', borderRadius: 8, border: '1px solid #fde68a' }}>
+                              <span style={{ fontSize: 16 }}>⏳</span>
+                              <span style={{ color: '#92400e', fontSize: 13, fontWeight: 600 }}>Awaiting assignment</span>
+                            </div>
                           )}
                         </div>
                       </div>
 
                       {/* Close error */}
                       {closeTicketErr && (
-                        <div style={{ marginTop: 16, display: 'flex', gap: 8, background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#b91c1c' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/></svg>
+                        <div style={{ marginTop: 16, display: 'flex', gap: 10, background: '#fee2e2', border: '2px solid #fca5a5', borderRadius: 12, padding: '14px 16px', fontSize: 13, color: '#991b1b', fontWeight: 600 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                            <circle cx="12" cy="12" r="10" stroke="#dc2626" strokeWidth="2.5"/>
+                            <path d="M12 8v4M12 16h.01" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"/>
+                          </svg>
                           {closeTicketErr}
                         </div>
                       )}
                     </div>
 
                     {/* Footer */}
-                    <div style={{ padding: '16px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: 10, flexShrink: 0, background: '#fafafa', borderBottomLeftRadius: 18, borderBottomRightRadius: 18 }}>
-                      {['PENDING_APPROVAL', 'QUEUED'].includes(selected.status) && (
-                        <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
-                          style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: closeTicketBusy ? '#fca5a5' : 'linear-gradient(135deg,#ef4444,#dc2626)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: closeTicketBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {closeTicketBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
-                          {closeTicketBusy ? 'Closing…' : 'Close Ticket'}
+                    <div style={{ padding: '20px 32px', borderTop: '2px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexShrink: 0, background: '#fff' }}>
+                      <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>
+                        Ticket ID: #{selected.id}
+                      </div>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {['PENDING_APPROVAL', 'QUEUED'].includes(selected.status) && (
+                          <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
+                            style={{ 
+                              padding: '11px 22px', 
+                              borderRadius: 10, 
+                              border: 'none', 
+                              background: closeTicketBusy ? '#fca5a5' : 'linear-gradient(135deg, #ef4444, #dc2626)', 
+                              color: '#fff', 
+                              fontWeight: 700, 
+                              fontSize: 14, 
+                              cursor: closeTicketBusy ? 'not-allowed' : 'pointer', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 8,
+                              transition: 'transform 0.2s',
+                              boxShadow: closeTicketBusy ? 'none' : '0 4px 12px rgba(239,68,68,0.3)'
+                            }}
+                            onMouseOver={e => !closeTicketBusy && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                          >
+                            {closeTicketBusy && <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                            {closeTicketBusy ? 'Closing…' : 'Close Ticket'}
+                          </button>
+                        )}
+                        <button onClick={() => setSelected(null)}
+                          style={{ 
+                            padding: '11px 22px', 
+                            borderRadius: 10, 
+                            border: '2px solid #e5e7eb', 
+                            background: '#fff', 
+                            color: '#374151', 
+                            fontWeight: 700, 
+                            fontSize: 14, 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={e => { 
+                            e.currentTarget.style.background = '#f9fafb'; 
+                            e.currentTarget.style.borderColor = '#cbd5e1';
+                          }}
+                          onMouseOut={e => { 
+                            e.currentTarget.style.background = '#fff'; 
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                          }}
+                        >
+                          Dismiss
                         </button>
-                      )}
-                      <button onClick={() => setSelected(null)}
-                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Dismiss</button>
+                      </div>
                     </div>
                   </>
                 );
@@ -725,56 +1010,381 @@ const UserDashboard = () => {
 
         {/* ── KPI Details Modal ── */}
         {kpiModalOpen && createPortal(
-          <div className="um-modal-overlay um-blur-overlay" onClick={e => { if (e.target === e.currentTarget) closeKpiModal(); }}>
-            <div className="um-modal" style={{ maxWidth: '90%' }} onClick={e => e.stopPropagation()}>
-              <h3>{modalDef.label}</h3>
-              {kpiModalKey === 'active' && (
-                <div style={{ marginBottom: 8 }}>
-                  <label className="muted">Filter:&nbsp;
-                    <select value={modalFilter} onChange={e => setModalFilter(e.target.value)}>
-                      <option value="All">All</option>
+          <div 
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 260,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(2,6,23,0.65)',
+              zIndex: 10000,
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              overflow: 'auto',
+              padding: '20px'
+            }}
+            onClick={e => { if (e.target === e.currentTarget) closeKpiModal(); }}
+          >
+            <div 
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: 1100,
+                maxHeight: 'calc(100vh - 40px)',
+                background: '#ffffff',
+                borderRadius: 24,
+                boxShadow: '0 40px 100px rgba(0,0,0,0.3), 0 0 1px rgba(0,0,0,0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                padding: '24px 32px',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                flexShrink: 0
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 14,
+                      background: 'rgba(255,255,255,0.2)',
+                      backdropFilter: 'blur(10px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 24,
+                      border: '2px solid rgba(255,255,255,0.3)'
+                    }}>
+                      {modalDef.color === 'amber' ? '⏱️' : modalDef.color === 'blue' ? '⚡' : modalDef.color === 'green' ? '✅' : '❌'}
+                    </div>
+                    <div>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: 24,
+                        fontWeight: 800,
+                        color: '#ffffff',
+                        letterSpacing: '-0.02em',
+                        textShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                      }}>
+                        {modalDef.label} Tickets
+                      </h2>
+                      <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 4, fontWeight: 600 }}>
+                        {modalItems.length} {modalItems.length === 1 ? 'ticket' : 'tickets'} found
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeKpiModal}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      border: '2px solid rgba(255,255,255,0.25)',
+                      background: 'rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(10px)',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                      fontSize: 20,
+                      fontWeight: 700
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters + Search */}
+              <div style={{
+                padding: '20px 32px',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e5e7eb',
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                flexShrink: 0
+              }}>
+                {kpiModalKey === 'active' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>Filter:</label>
+                    <select
+                      value={modalFilter}
+                      onChange={e => setModalFilter(e.target.value)}
+                      style={{
+                        border: '2px solid #e5e7eb',
+                        borderRadius: 10,
+                        padding: '8px 12px',
+                        fontSize: 14,
+                        outline: 'none',
+                        cursor: 'pointer',
+                        background: '#fff',
+                        fontWeight: 600,
+                        color: '#374151',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={e => e.target.style.borderColor = '#667eea'}
+                      onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                    >
+                      <option value="All">All Active</option>
                       <option value="QUEUED">In Queue</option>
                       <option value="PROCESSING">In Progress</option>
                     </select>
-                  </label>
-                </div>
-              )}
-              <div className="um-table" style={{ marginTop: 12 }}>
-                <div className="um-table-head">
-                  <div className="um-row head um-kpi-grid">
-                    <div className="um-cell">ID</div>
-                    <div className="um-cell">Title</div>
-                    <div className="um-cell">Type</div>
-                    <div className="um-cell">Status</div>
-                    <div className="um-cell">View</div>
                   </div>
+                )}
+                <div style={{ position: 'relative', flex: '1 1 320px', maxWidth: 480 }}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    style={{
+                      position: 'absolute',
+                      left: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      pointerEvents: 'none',
+                      color: '#94a3b8'
+                    }}
+                  >
+                    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2.5" />
+                    <path d="M16 16l5 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    value={modalSearch}
+                    onChange={e => setModalSearch(e.target.value)}
+                    placeholder="Search by ID, title, type, or status..."
+                    style={{
+                      width: '100%',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: 10,
+                      padding: '10px 14px 10px 44px',
+                      fontSize: 14,
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      fontWeight: 500,
+                      background: '#fff'
+                    }}
+                    onFocus={e => {
+                      e.target.style.borderColor = '#667eea';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(102,126,234,0.1)';
+                    }}
+                    onBlur={e => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
                 </div>
-                <div className="um-table-body">
-                  {(modalDef.items || [])
-                    .filter(t => kpiModalKey !== 'active' || modalFilter === 'All' || t.status === modalFilter)
-                    .map(t => {
+              </div>
+
+              {/* Table Content */}
+              <div style={{ flex: 1, overflow: 'auto', padding: '0 32px 20px' }}>
+                <div style={{
+                  marginTop: 20,
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  background: '#fff'
+                }}>
+                  {/* Table Header */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '100px 1fr 160px 140px 80px',
+                    gap: 16,
+                    padding: '14px 20px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>ID</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Title</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Type</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center' }}>Action</div>
+                  </div>
+
+                  {/* Table Body */}
+                  <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
+                    {modalItems.length > 0 ? modalItems.map((t, idx) => {
                       const m = statusMeta(t.status);
                       return (
-                        <div className="um-row um-kpi-grid" key={t.id}>
-                          <div className="um-cell"><code style={{ fontFamily: 'monospace', fontSize: 11, background: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>{t.id}</code></div>
-                          <div className="um-cell">{t.title}</div>
-                          <div className="um-cell">{t.ticket_type?.title || '—'}</div>
-                          <div className="um-cell"><span className="status" style={{ background: m.color + '1a', color: m.color, padding: '4px 8px', borderRadius: 6, fontWeight: 700, fontSize: 12 }}>{m.label}</span></div>
-                          <div className="um-cell" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <button type="button" className="icon-btn" onClick={() => { closeKpiModal(); setCloseTicketErr(''); setSelected(t); }} aria-label={`View ticket ${t.id}`}>
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                        <div
+                          key={t.id}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '100px 1fr 160px 140px 80px',
+                            gap: 16,
+                            padding: '16px 20px',
+                            alignItems: 'center',
+                            borderBottom: idx < modalItems.length - 1 ? '1px solid #f1f5f9' : 'none',
+                            transition: 'background 0.15s',
+                            cursor: 'pointer'
+                          }}
+                          onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+                          onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <code style={{
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            background: 'linear-gradient(135deg, #667eea15, #764ba215)',
+                            color: '#667eea',
+                            padding: '6px 10px',
+                            borderRadius: 8,
+                            fontWeight: 700,
+                            border: '1px solid #667eea25'
+                          }}>
+                            #{t.id}
+                          </code>
+                          <div style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: '#1e293b',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {t.title}
+                          </div>
+                          <div style={{
+                            fontSize: 13,
+                            color: '#64748b',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontWeight: 500
+                          }}>
+                            {t.ticket_type?.title || '—'}
+                          </div>
+                          <span style={{
+                            background: m.color + '15',
+                            color: m.color,
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            border: `1.5px solid ${m.color}30`,
+                            display: 'inline-block',
+                            textAlign: 'center'
+                          }}>
+                            {m.label}
+                          </span>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => {
+                                closeKpiModal();
+                                setCloseTicketErr('');
+                                setSelected(t);
+                              }}
+                              aria-label={`View ticket ${t.id}`}
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 10,
+                                border: '2px solid #e5e7eb',
+                                background: '#fff',
+                                color: '#667eea',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseOver={e => {
+                                e.currentTarget.style.background = '#667eea';
+                                e.currentTarget.style.borderColor = '#667eea';
+                                e.currentTarget.style.color = '#fff';
+                                e.currentTarget.style.transform = 'scale(1.1)';
+                              }}
+                              onMouseOut={e => {
+                                e.currentTarget.style.background = '#fff';
+                                e.currentTarget.style.borderColor = '#e5e7eb';
+                                e.currentTarget.style.color = '#667eea';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
                             </button>
                           </div>
                         </div>
                       );
-                    })}
-                  {(modalDef.items || []).filter(t => kpiModalKey !== 'active' || modalFilter === 'All' || t.status === modalFilter).length === 0 && (
-                    <div className="um-row"><div className="um-cell" style={{ color: '#9ca3af' }}>No items</div></div>
-                  )}
+                    }) : (
+                      <div style={{
+                        padding: '60px 20px',
+                        textAlign: 'center',
+                        color: '#94a3b8'
+                      }}>
+                        <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }}>🔍</div>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>No tickets found</div>
+                        <div style={{ fontSize: 14, color: '#94a3b8' }}>Try adjusting your filters or search query</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-                <button className="btn-muted" onClick={closeKpiModal}>Close</button>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 32px',
+                borderTop: '1px solid #e5e7eb',
+                background: '#f8fafc',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexShrink: 0
+              }}>
+                <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>
+                  Showing {modalItems.length} of {modalDef.items.length} tickets
+                </div>
+                <button
+                  onClick={closeKpiModal}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 10,
+                    border: '2px solid #e5e7eb',
+                    background: '#fff',
+                    color: '#374151',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.background = '#f1f5f9';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                  }}
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>,

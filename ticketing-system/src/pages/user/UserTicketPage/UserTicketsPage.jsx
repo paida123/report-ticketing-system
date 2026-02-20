@@ -292,7 +292,7 @@ const UserTicketsPage = () => {
           const descMax = 1000;
           return (
             <div role="dialog" aria-modal="true" aria-label="Create new ticket"
-              style={{ position:"fixed", inset:0, display:"flex", alignItems:"center", justifyContent:"center", zIndex:60, background:"rgba(2,6,23,0.45)", backdropFilter:"blur(3px)" }}
+              style={{ position:"fixed", top:0, left:260, right:0, bottom:0, display:"flex", alignItems:"center", justifyContent:"center", zIndex:60, background:"rgba(2,6,23,0.45)", backdropFilter:"blur(3px)" }}
               onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitCreateTicket(); }}
             >
               <div style={{ background:"#fff", borderRadius:18, width:"100%", maxWidth:560, boxShadow:"0 32px 64px rgba(2,6,23,0.22)", display:"flex", flexDirection:"column", maxHeight:"92vh", overflow:"hidden" }}>
@@ -352,7 +352,7 @@ const UserTicketsPage = () => {
                         <div style={{ flex:1 }}>
                           <div style={{ fontWeight:700, color:"#1e40af", fontSize:13 }}>{selectedType.title}</div>
                           <div style={{ color:"#4b5563", fontSize:12, marginTop:3 }}>
-                            {selectedType.departments?.department && <span style={{ marginRight:10 }}>Dept: <strong>{selectedType.departments.department}</strong></span>}
+                            {selectedType.departmental?.department && <span style={{ marginRight:10 }}>Dept: <strong>{selectedType.departmental.department}</strong></span>}
                             {selectedType.approval_required
                               ? <span style={{ color:"#92400e" }}>Requires <strong>{selectedType.approval_count}</strong> approval{selectedType.approval_count!==1?"s":""}</span>
                               : <span style={{ color:"#065f46" }}>No approval needed</span>}
@@ -376,7 +376,10 @@ const UserTicketsPage = () => {
                     <select value={ctForm.assigned_to} onChange={e => ctSet("assigned_to",e.target.value)} onFocus={() => setCtFocus("assigned_to")} onBlurCapture={() => setCtFocus("")} disabled={officersLoading}
                       style={{ ...inputStyle(false), boxShadow:ctFocus==="assigned_to"?"0 0 0 3px rgba(59,130,246,0.15)":"none", borderColor:ctFocus==="assigned_to"?"#93c5fd":"#e5e7eb", cursor:"pointer", color:ctForm.assigned_to?"#111827":"#9ca3af" }}>
                       <option value="">{officersLoading?"Loading officers":" Auto-assign (recommended) "}</option>
-                      {officers.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{u.department?`  ${u.department}`:""}</option>)}
+                      {officers.map(u => {
+                        const deptName = typeof u.department === 'string' ? u.department : u.department?.department;
+                        return <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{deptName?`  ${deptName}`:""}</option>;
+                      })}
                     </select>
                     <div style={{ marginTop:7, fontSize:12, color:"#6b7280", display:"flex", alignItems:"center", gap:5 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#9ca3af" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -409,7 +412,7 @@ const UserTicketsPage = () => {
        */}
       {selected && createPortal(
         <div role="dialog" aria-modal="true"
-          style={{ position:"fixed", inset:0, display:"flex", alignItems:"center", justifyContent:"center", zIndex:70, background:"rgba(2,6,23,0.50)", backdropFilter:"blur(4px)" }}
+          style={{ position:"fixed", top:0, left:260, right:0, bottom:0, display:"flex", alignItems:"center", justifyContent:"center", zIndex:70, background:"rgba(2,6,23,0.50)", backdropFilter:"blur(4px)" }}
           onClick={e => { if (e.target===e.currentTarget) setSelected(null); }}
         >
           <div style={{ background:"#fff", borderRadius:18, width:"100%", maxWidth:600, maxHeight:"90vh", display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 32px 72px rgba(2,6,23,0.28)" }}
@@ -481,7 +484,13 @@ const UserTicketsPage = () => {
                           <div>
                             <div style={{ fontWeight:600, color:"#111827", fontSize:13 }}>{selected.created_by?.name||""}</div>
                             <div style={{ fontSize:11, color:"#6b7280" }}>{selected.created_by?.email||""}</div>
-                            {selected.created_by?.department && <div style={{ fontSize:11, color:"#9ca3af" }}>{selected.created_by.department}</div>}
+                            {selected.created_by?.department && (
+                              <div style={{ fontSize:11, color:"#9ca3af" }}>
+                                {typeof selected.created_by.department === 'string' 
+                                  ? selected.created_by.department 
+                                  : selected.created_by.department?.department || 'Unknown Department'}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -492,10 +501,10 @@ const UserTicketsPage = () => {
                         {selected.assignment?.officer ? (
                           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                             <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,#10b981,#059669)", color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                              {`${selected.assignment.officer.first_name?.[0]||""}${selected.assignment.officer.last_name?.[0]||""}`.toUpperCase()}
+                              {selected.assignment.officer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'NA'}
                             </div>
                             <div>
-                              <div style={{ fontWeight:600, color:"#111827", fontSize:13 }}>{selected.assignment.officer.first_name} {selected.assignment.officer.last_name}</div>
+                              <div style={{ fontWeight:600, color:"#111827", fontSize:13 }}>{selected.assignment.officer.name}</div>
                               <div style={{ fontSize:11, color:"#6b7280" }}>{selected.assignment.officer.email}</div>
                             </div>
                           </div>

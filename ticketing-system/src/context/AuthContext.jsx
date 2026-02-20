@@ -30,6 +30,7 @@ export const getDashboardByRole = (role) => {
     case 'administrator':
       return '/admin';
     case 'manager':
+    case 'officer':
       return '/manager';
     case 'executive':
       return '/executive';

@@ -109,7 +109,9 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
         else if (p.startsWith('/super') || p.startsWith('/superadmin')) roleFromPath = 'SUPER_ADMIN';
         else if (p.startsWith('/admin') || p.startsWith('/admindashboard')) roleFromPath = 'ADMIN';
     } catch (e) { roleFromPath = null; }
-    const userRole = roleFromStorage || roleFromPath || 'ADMIN';
+    // Normalize OFFICER role to MANAGER for UI purposes
+    let userRole = roleFromStorage || roleFromPath || 'ADMIN';
+    if (userRole === 'OFFICER') userRole = 'MANAGER';
 
     const items = [
         {

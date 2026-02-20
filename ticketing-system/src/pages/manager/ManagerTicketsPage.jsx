@@ -138,12 +138,17 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   }, [modalOpen, selected]);
 
   // Derived: split by tab
-  const deptTickets = bypassDeptFilter
+  // Officers see all tickets in department tab, managers see only their department
+  const isOfficer = user?.role?.toLowerCase() === 'officer';
+  const deptTickets = (bypassDeptFilter || isOfficer)
     ? allTickets
-    : allTickets.filter(t =>
-        managerDept &&
-        String(t.created_by?.department || '').toUpperCase() === managerDept
-      );
+    : allTickets.filter(t => {
+        if (!managerDept) return false;
+        const createdByDept = typeof t.created_by?.department === 'string' 
+          ? t.created_by?.department 
+          : t.created_by?.department?.department || '';
+        return String(createdByDept).trim().toUpperCase() === managerDept;
+      });
 
   // Tickets assigned to the manager as an officer
   const myTickets = allTickets.filter(t => {
@@ -162,12 +167,15 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const filtered = viewTickets.filter(t => {
     if (statusFilter !== 'All' && t.status !== statusFilter) return false;
     if (!q) return true;
+    const createdByDept = typeof t.created_by?.department === 'string' 
+      ? t.created_by?.department 
+      : t.created_by?.department?.department || '';
     return (
       (t.title               || '').toLowerCase().includes(q) ||
       (t.id                  || '').toLowerCase().includes(q) ||
       (t.ticket_type?.title  || '').toLowerCase().includes(q) ||
       (t.created_by?.name    || '').toLowerCase().includes(q) ||
-      (t.created_by?.department || '').toLowerCase().includes(q)
+      (createdByDept         || '').toLowerCase().includes(q)
     );
   });
 
@@ -241,7 +249,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
       <PageHeader
         title="Tickets"
         subtitle={activeTab === 'department'
-          ? bypassDeptFilter
+          ? (bypassDeptFilter || isOfficer)
             ? 'Organisation-wide view — all tickets'
             : (managerDept ? `Department: ${managerDept}` : 'All department tickets')
           : 'Tickets assigned to you as officer'}
@@ -270,8 +278,8 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
             <path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             <path d="M9 21v-6h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          {bypassDeptFilter ? 'All Tickets' : 'Department View'}
-          {!bypassDeptFilter && !deptLoading && managerDept && (
+          {(bypassDeptFilter || isOfficer) ? 'All Tickets' : 'Department View'}
+          {!(bypassDeptFilter || isOfficer) && !deptLoading && managerDept && (
             <span className="mgr-tab-badge">{managerDept}</span>
           )}
           <span style={{ marginLeft: 6, background: activeTab === 'department' ? '#3b82f6' : '#e5e7eb', color: activeTab === 'department' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
@@ -397,7 +405,9 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                     {activeTab === 'department' && (
                       <td className="col-type">
                         <div style={{ fontWeight: 600, fontSize: 13, color: '#111827' }}>{t.created_by?.name || '-'}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{t.created_by?.department || ''}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                          {typeof t.created_by?.department === 'string' ? t.created_by?.department : t.created_by?.department?.department || ''}
+                        </div>
                       </td>
                     )}
                     <td className="col-type">
@@ -470,8 +480,8 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                 )
               );
 
-              // Close Ticket is only available on the manager's own tickets (My Tickets tab)
-              const canClose = isMyTab && isActive;
+              // Close Ticket is available if the ticket is active and assigned to the logged-in user
+              const canClose = isActive && selected.assignment?.officer?.id === user?.id;
               return (
                 <>
                   {/* Modal header */}
@@ -499,7 +509,11 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{selected.created_by?.name || '-'}</div>
                         <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                           {selected.created_by?.email || ''}
-                          {selected.created_by?.department && <span style={{ marginLeft: 8, background: '#f1f5f9', borderRadius: 6, padding: '1px 7px', fontWeight: 600, color: '#475569', fontSize: 11 }}>{selected.created_by.department}</span>}
+                          {selected.created_by?.department && (
+                            <span style={{ marginLeft: 8, background: '#f1f5f9', borderRadius: 6, padding: '1px 7px', fontWeight: 600, color: '#475569', fontSize: 11 }}>
+                              {typeof selected.created_by.department === 'string' ? selected.created_by.department : selected.created_by.department?.department || 'Unknown'}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -520,7 +534,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         { label: 'Type',         val: selected.ticket_type?.title || '-' },
                         { label: 'SLA',          val: selected.ticket_type?.expected_sla_duration ? `${selected.ticket_type.expected_sla_duration}h` : '-' },
                         { label: 'Approval',     val: selected.ticket_type?.approval_required ? `Yes (${selected.ticket_type.approval_count} step${selected.ticket_type.approval_count !== 1 ? 's' : ''})` : 'Not required' },
-                        { label: 'Officer',      val: selected.assignment?.officer ? `${selected.assignment.officer.first_name} ${selected.assignment.officer.last_name}` : 'Unassigned' },
+                        { label: 'Officer',      val: selected.assignment?.officer?.name || 'Unassigned' },
                       ].map(({ label, val }) => (
                         <div key={label} style={{ background: '#f8fafc', borderRadius: 11, padding: '11px 15px', border: '1px solid #f1f5f9' }}>
                           <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</div>

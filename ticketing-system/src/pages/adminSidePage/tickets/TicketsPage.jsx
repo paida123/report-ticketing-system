@@ -521,7 +521,7 @@ const CreateTicketModal = ({ typesList, onClose, onCreated }) => {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, color: '#1e40af', fontSize: 13 }}>{selectedType.title}</div>
                   <div style={{ color: '#4b5563', fontSize: 12, marginTop: 3 }}>
-                    {selectedType.departments?.department && <span style={{ marginRight: 10 }}>Dept: <strong>{selectedType.departments.department}</strong></span>}
+                    {selectedType.departmental?.department && <span style={{ marginRight: 10 }}>Dept: <strong>{selectedType.departmental.department}</strong></span>}
                     {selectedType.approval_required
                       ? <span style={{ color: '#92400e' }}>Requires <strong>{selectedType.approval_count}</strong> approval{selectedType.approval_count !== 1 ? 's' : ''}</span>
                       : <span style={{ color: '#065f46' }}>No approval needed</span>}
@@ -608,9 +608,7 @@ const ViewTicketModal = ({ ticket, onClose, onClosed }) => {
   const creator = ticket.created_by?.name || '-';
   const creatorDept = ticket.created_by?.department || '';
   const creatorEmail = ticket.created_by?.email || '';
-  const officer = ticket.assignment?.officer
-    ? `${ticket.assignment.officer.first_name || ''} ${ticket.assignment.officer.last_name || ''}`.trim()
-    : 'Unassigned';
+  const officer = ticket.assignment?.officer?.name || 'Unassigned';
   const officerEmail = ticket.assignment?.officer?.email || '';
   const typeName = ticket.ticket_type?.title || '-';
   const sla = ticket.ticket_type?.expected_sla_duration;
@@ -973,9 +971,7 @@ const TicketsPage = () => {
                     {ticketsList.map(t => {
                       const sm = statusMeta(t.status);
                       const creator = t.created_by?.name || '-';
-                      const officer = t.assignment?.officer
-                        ? `${t.assignment.officer.first_name || ''} ${t.assignment.officer.last_name || ''}`.trim()
-                        : 'Unassigned';
+                      const officer = t.assignment?.officer?.name || 'Unassigned';
                       return (
                         <tr key={t.id}>
                           <td><code style={{ fontSize: 12, background: '#f3f4f6', padding: '2px 7px', borderRadius: 6, letterSpacing: '0.04em', color: '#374151' }}>{t.id}</code></td>

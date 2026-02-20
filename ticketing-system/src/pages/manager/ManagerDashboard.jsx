@@ -132,15 +132,27 @@ const ManagerDashboard = () => {
     managerProfile?.department ||
     null;
 
-  const deptTickets = allTickets.filter(t =>
-    managerDept &&
-    String(t.created_by?.department || '').toUpperCase() === String(managerDept).toUpperCase()
-  );
+  // Officers see all tickets in department tab, managers see only their department
+  const isOfficer = user?.role?.toLowerCase() === 'officer';
+  const deptTickets = isOfficer 
+    ? allTickets
+    : allTickets.filter(t => {
+        if (!managerDept) return false;
+        const createdByDept = typeof t.created_by?.department === 'string' 
+          ? t.created_by?.department 
+          : t.created_by?.department?.department || '';
+        return String(createdByDept).trim().toUpperCase() === String(managerDept).toUpperCase();
+      });
 
-  const myTickets = allTickets.filter(t =>
-    t.created_by?.email && user?.email &&
-    String(t.created_by.email).toLowerCase() === String(user.email).toLowerCase()
-  );
+  const myTickets = allTickets.filter(t => {
+    if (!user) return false;
+    const officer = t.assignment?.officer;
+    if (!officer) return false;
+    // Match by officer id first, then fall back to email
+    if (user.id && String(officer.id || '') === String(user.id)) return true;
+    if (user.email && String(officer.email || '').toLowerCase() === String(user.email).toLowerCase()) return true;
+    return false;
+  });
 
   const viewTickets = activeTab === 'department' ? deptTickets : myTickets;
   const byStatus    = (...ss) => viewTickets.filter(t => ss.includes(t.status));
@@ -277,7 +289,7 @@ const ManagerDashboard = () => {
     <>
       <PageHeader
         title="Manager Dashboard"
-        subtitle={`${activeTab === 'department' ? (managerDept ? `${managerDept} Department` : 'Department') : 'My'} tickets at a glance`}
+        subtitle={`${activeTab === 'department' ? (isOfficer ? 'All' : (managerDept ? `${managerDept} Department` : 'Department')) : 'My'} tickets at a glance`}
         actions={<button className="btn-primary" onClick={() => { resetCreate(); setOpenCreate(true); }}>Create Ticket</button>}
       />
 
@@ -293,8 +305,8 @@ const ManagerDashboard = () => {
       <div className="mgr-tabs">
         <button className={`mgr-tab ${activeTab === 'department' ? 'active' : ''}`} onClick={() => setActiveTab('department')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/></svg>
-          Department View
-          {managerDept && <span className="mgr-tab-badge">{managerDept}</span>}
+          {isOfficer ? 'All Tickets' : 'Department View'}
+          {!isOfficer && managerDept && <span className="mgr-tab-badge">{managerDept}</span>}
         </button>
         <button className={`mgr-tab ${activeTab === 'mine' ? 'active' : ''}`} onClick={() => setActiveTab('mine')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
@@ -622,7 +634,9 @@ const ManagerDashboard = () => {
                       <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#3b82f6,#6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{creatorInitials}</div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{selected.created_by?.name || '—'}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{selected.created_by?.email || ''} · {selected.created_by?.department || '—'}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                          {selected.created_by?.email || ''} · {typeof selected.created_by?.department === 'string' ? selected.created_by?.department : selected.created_by?.department?.department || '—'}
+                        </div>
                       </div>
                       <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                         <div style={{ fontSize: 11, color: '#94a3b8' }}>Created</div>
@@ -640,7 +654,7 @@ const ManagerDashboard = () => {
                         { label: 'Ticket Type', val: selected.ticket_type?.title || '—' },
                         { label: 'SLA', val: selected.ticket_type?.expected_sla_duration ? `${selected.ticket_type.expected_sla_duration}h` : '—' },
                         { label: 'Approval Required', val: selected.ticket_type?.approval_required ? `Yes (${selected.ticket_type.approval_count} step${selected.ticket_type.approval_count !== 1 ? 's' : ''})` : 'No' },
-                        { label: 'Assigned Officer', val: selected.assignment?.officer ? `${selected.assignment.officer.first_name} ${selected.assignment.officer.last_name}` : 'Unassigned' },
+                        { label: 'Assigned Officer', val: selected.assignment?.officer?.name || 'Unassigned' },
                       ].map(({ label, val }) => (
                         <div key={label} style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 14px' }}>
                           <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
@@ -698,7 +712,7 @@ const ManagerDashboard = () => {
                         </button>
                       </>
                     )}
-                    {['QUEUED', 'PROCESSING'].includes(selected.status) && (
+                    {['QUEUED', 'PROCESSING'].includes(selected.status) && selected.assignment?.officer?.id === user?.id && (
                       <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
                         style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: closeTicketBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: closeTicketBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                         {closeTicketBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}

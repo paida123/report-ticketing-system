@@ -66,9 +66,11 @@ const PendingApprovalPage = () => {
     ])
       .then(([trRes, approvalRes]) => {
         const all = trRes?.data?.data?.tickets || [];
+        // Officers see all pending approvals, managers see only their department
+        const isOfficer = user?.role?.toLowerCase() === 'officer';
         const pending = all.filter(t => {
           if (t.status !== 'PENDING_APPROVAL') return false;
-          if (!managerDept) return true;
+          if (isOfficer || !managerDept) return true;
           const tDept = String(t.created_by?.department || '').toUpperCase();
           return tDept === managerDept;
         });
@@ -78,7 +80,7 @@ const PendingApprovalPage = () => {
       })
       .catch(() => setLoadErr('Failed to load approval tasks. Please refresh.'))
       .finally(() => setLoading(false));
-  }, [managerDept]);
+  }, [managerDept, user]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -141,7 +143,7 @@ const PendingApprovalPage = () => {
     <>
       <PageHeader
         title="Pending Approvals"
-        subtitle={managerDept ? `Department: ${managerDept}` : 'Tickets awaiting your approval'}
+        subtitle={user?.role?.toLowerCase() === 'officer' ? 'All tickets awaiting approval' : (managerDept ? `Department: ${managerDept}` : 'Tickets awaiting your approval')}
       />
 
       {successMsg && createPortal(
