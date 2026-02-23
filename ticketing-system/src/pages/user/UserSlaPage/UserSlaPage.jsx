@@ -2,6 +2,7 @@
 import { createPortal } from "react-dom";
 import PageHeader from "../../../components/PageHeader/PageHeader";
 import SlaService from "../../../services/sla.service";
+import { useAuth } from "../../../context/AuthContext";
 import "../../admin.css";
 import "../UserDashboard.css";
 import "./UserSlaPage.css";
@@ -27,6 +28,7 @@ const isMet = (r) => r.grade === "EXCELLENT" || r.grade === "ON_TARGET";
 
 /*  Component  */
 const UserSlaPage = () => {
+  const { user } = useAuth();
   const [slaData, setSlaData]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [loadErr, setLoadErr]   = useState("");
@@ -34,16 +36,17 @@ const UserSlaPage = () => {
   const [query,    setQuery]    = useState("");
 
   const loadSla = useCallback(() => {
+    if (!user?.id) return;
     setLoading(true);
     setLoadErr("");
-    SlaService.getAllSla({ limit: 100 })
+    SlaService.getMySla({ limit: 100 })
       .then(r => {
         const d = r?.data;
         setSlaData(Array.isArray(d?.data) ? d.data : []);
       })
       .catch(() => setLoadErr("Failed to load SLA data. Please try again."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => { loadSla(); }, [loadSla]);
 

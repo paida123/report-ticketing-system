@@ -263,19 +263,22 @@ const DepartmentConfuguration = () => {
 
 				/* ── Page layout ── */
 				.dept-page-header {
-					margin-bottom: 6px;
+					margin-bottom: 24px;
+					padding-bottom: 16px;
+					border-bottom: 2px solid rgba(226, 232, 240, 0.6);
 				}
 				.dept-page-header h2 {
-					margin: 0 0 4px 0;
-					font-size: 22px;
+					margin: 0 0 8px 0;
+					font-size: 32px;
 					font-weight: 800;
 					color: #0f172a;
-					letter-spacing: -0.02em;
+					letter-spacing: -0.04em;
 				}
 				.dept-page-header p {
 					margin: 0;
-					font-size: 14px;
+					font-size: 15px;
 					color: #64748b;
+					font-weight: 500;
 				}
 
 				/* ── Toolbar (search + button) ── */
@@ -283,88 +286,213 @@ const DepartmentConfuguration = () => {
 					display: flex;
 					align-items: center;
 					justify-content: space-between;
-					gap: 12px;
-					margin: 16px 0 20px 0;
-					padding: 14px 18px;
-					background: #ffffff;
-					border: 1px solid rgba(148,163,184,0.18);
-					border-radius: 14px;
-					box-shadow: 0 2px 8px rgba(2,6,23,0.04);
+					gap: 14px;
+					margin: 0 0 24px 0;
+					padding: 16px 20px;
+					background: linear-gradient(135deg, #ffffff, #f8fafc);
+					border: 1px solid rgba(2, 6, 23, 0.06);
+					border-radius: 16px;
+					box-shadow: 0 2px 12px rgba(2, 6, 23, 0.04);
 				}
 				.dept-search {
 					flex: 1;
-					max-width: 340px;
-					padding: 9px 14px;
-					border: 1px solid rgba(148,163,184,0.3);
-					border-radius: 10px;
+					max-width: 380px;
+					padding: 11px 16px;
+					border: 2px solid rgba(148,163,184,0.25);
+					border-radius: 12px;
 					font-size: 14px;
 					color: #0f172a;
-					background: #f8fafc;
+					background: rgba(248,250,252,0.8);
 					outline: none;
-					transition: border-color .15s, box-shadow .15s;
+					transition: all .2s ease;
+					font-weight: 500;
 				}
 				.dept-search:focus {
 					border-color: #3b82f6;
-					box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+					box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
 					background: #fff;
+				}
+
+				/* ── Add button ── */
+				.dept-add-btn {
+					display: inline-flex;
+					align-items: center;
+					gap: 8px;
+					padding: 11px 20px;
+					background: linear-gradient(135deg, #10b981, #059669);
+					color: white;
+					border: none;
+					border-radius: 12px;
+					font-size: 14px;
+					font-weight: 700;
+					cursor: pointer;
+					transition: all 0.2s ease;
+					box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+					white-space: nowrap;
+				}
+				.dept-add-btn:hover {
+					transform: translateY(-2px);
+					box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+					background: linear-gradient(135deg, #059669, #047857);
+				}
+				.dept-add-btn:active {
+					transform: translateY(0);
+				}
+				.dept-add-btn svg {
+					width: 16px;
+					height: 16px;
+				}
+
+				/* ── Loading & Empty states ── */
+				.dept-empty-state {
+					text-align: center;
+					padding: 60px 20px;
+					color: #94a3b8;
+				}
+				.dept-empty-state svg {
+					width: 48px;
+					height: 48px;
+					margin-bottom: 16px;
+					opacity: 0.4;
+				}
+				.dept-empty-state p {
+					margin: 8px 0 0 0;
+					font-size: 14px;
+					font-weight: 500;
+				}
+
+				/* ── Loading spinner ── */
+				@keyframes spin {
+					to { transform: rotate(360deg); }
+				}
+				.dept-loading {
+					text-align: center;
+					padding: 60px 20px;
+					color: #64748b;
+				}
+				.dept-loading-spinner {
+					width: 40px;
+					height: 40px;
+					border: 3px solid #e2e8f0;
+					border-top-color: #3b82f6;
+					border-radius: 50%;
+					margin: 0 auto 16px;
+					animation: spin 0.8s linear infinite;
+				}
+
+				/* ── Error banner ── */
+				.dept-error-banner {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					background: linear-gradient(135deg, #fef2f2, #fee2e2);
+					border: 1px solid #fecaca;
+					color: #7f1d1d;
+					padding: 14px 20px;
+					border-radius: 12px;
+					margin-bottom: 20px;
+					font-size: 14px;
+					font-weight: 600;
+					box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+				}
+				.dept-error-banner button {
+					background: none;
+					border: none;
+					color: #dc2626;
+					font-weight: 700;
+					cursor: pointer;
+					padding: 6px 14px;
+					border-radius: 8px;
+					transition: background 0.2s;
+				}
+				.dept-error-banner button:hover {
+					background: rgba(220, 38, 38, 0.1);
 				}
 
 				/* ── Table ── */
 				.dept-table {
 					width: 100%;
-					border-collapse: collapse;
+					border-collapse: separate;
+					border-spacing: 0;
 					font-size: 14px;
 				}
 				.dept-table thead tr {
-					background: #f8fafc;
-					border-bottom: 2px solid rgba(148,163,184,0.18);
+					background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+					border-bottom: 3px solid #cbd5e1;
 				}
 				.dept-table thead th {
-					padding: 12px 16px;
+					padding: 18px 24px;
 					text-align: left;
-					font-size: 12px;
-					font-weight: 700;
+					font-size: 11px;
+					font-weight: 800;
 					text-transform: uppercase;
-					letter-spacing: .06em;
-					color: #64748b;
+					letter-spacing: .08em;
+					color: #475569;
+					position: sticky;
+					top: 0;
+					z-index: 10;
+				}
+				.dept-table thead th:first-child {
+					padding-left: 32px;
 				}
 				.dept-table tbody tr {
-					border-bottom: 1px solid rgba(148,163,184,0.1);
-					transition: background .12s;
+					border-bottom: 1px solid #e2e8f0;
+					transition: all .25s ease;
+					background: #ffffff;
+				}
+				.dept-table tbody tr:nth-child(even) {
+					background: rgba(248, 250, 252, 0.5);
 				}
 				.dept-table tbody tr:hover {
-					background: rgba(59,130,246,0.03);
+					background: linear-gradient(90deg, rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.02));
+					transform: translateX(4px);
+					box-shadow: 0 4px 12px rgba(2, 6, 23, 0.06), inset 3px 0 0 #3b82f6;
 				}
 				.dept-table tbody tr:last-child {
 					border-bottom: none;
 				}
 				.dept-table td {
-					padding: 13px 16px;
+					padding: 20px 24px;
 					color: #0f172a;
 					vertical-align: middle;
 				}
+				.dept-table td:first-child {
+					padding-left: 32px;
+				}
 				.dept-table td.num-col {
-					width: 56px;
-					color: #94a3b8;
-					font-weight: 600;
+					width: 80px;
+					padding-right: 32px;
+					color: #64748b;
+					font-weight: 700;
+					font-size: 14px;
 				}
 				.dept-table td.action-col {
-					width: 80px;
+					width: 140px;
 					text-align: center;
+					padding-right: 32px;
 				}
 
 				/* ── Badge ── */
 				.dept-badge {
 					display: inline-flex;
 					align-items: center;
-					padding: 5px 14px;
-					border-radius: 999px;
-					background: rgba(59,130,246,0.08);
-					border: 1px solid rgba(59,130,246,0.2);
-					color: #1d4ed8;
+					padding: 8px 20px;
+					border-radius: 8px;
+					background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+					border: 1.5px solid #93c5fd;
+					color: #1e40af;
 					font-size: 13px;
 					font-weight: 700;
 					letter-spacing: .04em;
+					transition: all .25s ease;
+					box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
+				}
+				.dept-table tbody tr:hover .dept-badge {
+					background: linear-gradient(135deg, #3b82f6, #2563eb);
+					border-color: #2563eb;
+					color: #ffffff;
+					transform: scale(1.03);
+					box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 				}
 
 				/* ── Edit button ── */
@@ -372,20 +500,31 @@ const DepartmentConfuguration = () => {
 					display: inline-flex;
 					align-items: center;
 					justify-content: center;
-					width: 34px;
-					height: 34px;
+					gap: 8px;
+					padding: 10px 20px;
 					border-radius: 10px;
-					border: 1px solid rgba(148,163,184,0.28);
-					background: #f8fafc;
+					border: 1.5px solid #cbd5e1;
+					background: linear-gradient(135deg, #f8fafc, #f1f5f9);
 					color: #475569;
 					cursor: pointer;
-					transition: background .14s, border-color .14s, color .14s, box-shadow .14s;
+					font-size: 13px;
+					font-weight: 700;
+					transition: all .25s ease;
+					box-shadow: 0 2px 6px rgba(2, 6, 23, 0.06);
 				}
 				.dept-edit-btn:hover {
-					background: rgba(59,130,246,0.08);
-					border-color: rgba(59,130,246,0.35);
-					color: #2563eb;
-					box-shadow: 0 4px 10px rgba(59,130,246,0.12);
+					background: linear-gradient(135deg, #3b82f6, #2563eb);
+					border-color: #2563eb;
+					color: #fff;
+					transform: translateY(-3px);
+					box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+				}
+				.dept-edit-btn:active {
+					transform: translateY(-1px);
+				}
+				.dept-edit-btn svg {
+					width: 14px;
+					height: 14px;
 				}
 
 				/* ── Danger button ── */
@@ -404,10 +543,15 @@ const DepartmentConfuguration = () => {
 				/* ── Table card wrapper ── */
 				.dept-table-card {
 					background: #ffffff;
-					border: 1px solid rgba(148,163,184,0.18);
-					border-radius: 14px;
-					box-shadow: 0 2px 8px rgba(2,6,23,0.04);
+					border: 2px solid rgba(226, 232, 240, 0.8);
+					border-radius: 20px;
+					box-shadow: 0 10px 40px rgba(2, 6, 23, 0.08), 0 2px 8px rgba(2, 6, 23, 0.04);
 					overflow: hidden;
+					transition: all .3s ease;
+				}
+				.dept-table-card:hover {
+					box-shadow: 0 20px 60px rgba(2, 6, 23, 0.12), 0 4px 16px rgba(2, 6, 23, 0.06);
+					transform: translateY(-2px);
 				}
 
 				/* ── Footer ── */
@@ -415,10 +559,15 @@ const DepartmentConfuguration = () => {
 					display: flex;
 					align-items: center;
 					justify-content: space-between;
-					margin-top: 14px;
+					margin-top: 24px;
+					padding: 16px 24px;
+					background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+					border: 1px solid #e2e8f0;
+					border-radius: 14px;
 					font-size: 13px;
-					color: #94a3b8;
-					font-weight: 500;
+					color: #475569;
+					font-weight: 600;
+					box-shadow: 0 2px 8px rgba(2, 6, 23, 0.04);
 				}
 			`}</style>
 
@@ -439,14 +588,19 @@ const DepartmentConfuguration = () => {
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 					/>
-					<button className="btn-primary" onClick={() => setOpenAdd(true)}>+ Add Department</button>
+					<button className="dept-add-btn" onClick={() => setOpenAdd(true)}>
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+							<path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/>
+						</svg>
+						Add Department
+					</button>
 				</div>
 
 				{/* ── Fetch error ── */}
 				{fetchError && (
-					<div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#7f1d1d', padding:'10px 16px', borderRadius:10, marginBottom:16, fontSize:14 }}>
-						{fetchError}
-						<button style={{ marginLeft:12, background:'none', border:'none', color:'#dc2626', fontWeight:700, cursor:'pointer' }} onClick={fetchDepartments}>Retry</button>
+					<div className="dept-error-banner">
+						<span>{fetchError}</span>
+						<button onClick={fetchDepartments}>Retry</button>
 					</div>
 				)}
 
@@ -455,14 +609,21 @@ const DepartmentConfuguration = () => {
 					<table className="dept-table">
 						<thead>
 							<tr>
-								<th style={{ width:56 }}>#</th>
+								<th style={{ width:80 }}>#</th>
 								<th>Department Name</th>
-								<th style={{ width:80, textAlign:'center' }}>Actions</th>
+								<th style={{ width:140, textAlign:'center' }}>Actions</th>
 							</tr>
 						</thead>
 						<tbody>
 							{loading && (
-								<tr><td colSpan={3} style={{ textAlign:'center', padding:40, color:'#94a3b8' }}>Loading departments…</td></tr>
+								<tr>
+									<td colSpan={3}>
+										<div className="dept-loading">
+											<div className="dept-loading-spinner"></div>
+											<p>Loading departments…</p>
+										</div>
+									</td>
+								</tr>
 							)}
 							{!loading && filtered.map((d, i) => (
 								<tr key={d.id}>
@@ -473,21 +634,27 @@ const DepartmentConfuguration = () => {
 									<td className="action-col">
 										<button
 											className="dept-edit-btn"
-											title="Edit"
+											title="Edit department"
 											aria-label={`Edit ${d.department}`}
 											onClick={() => setEditingDept(d)}
 										>
-											<svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-												<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+											<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+												<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
 											</svg>
+											Edit
 										</button>
 									</td>
 								</tr>
 							))}
 							{!loading && filtered.length === 0 && !fetchError && (
 								<tr>
-									<td colSpan={3} style={{ textAlign:'center', padding:40, color:'#94a3b8' }}>
-										{search ? `No departments match "${search}".` : 'No departments yet. Add one to get started.'}
+									<td colSpan={3}>
+										<div className="dept-empty-state">
+											<svg viewBox="0 0 16 16" fill="currentColor">
+												<path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+											</svg>
+											<p>{search ? `No departments match "${search}".` : 'No departments yet. Add one to get started.'}</p>
+										</div>
 									</td>
 								</tr>
 							)}

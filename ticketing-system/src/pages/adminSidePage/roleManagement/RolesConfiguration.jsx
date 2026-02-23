@@ -260,77 +260,307 @@ const RolesConfiguration = () => {
 					from { opacity:0; transform:translateY(12px); }
 					to   { opacity:1; transform:translateY(0); }
 				}
-				.role-page-header { margin-bottom: 6px; }
-				.role-page-header h2 {
-					margin: 0 0 4px 0; font-size: 22px; font-weight: 800;
-					color: #0f172a; letter-spacing: -0.02em;
+				.role-page-header {
+					margin-bottom: 24px;
+					padding-bottom: 16px;
+					border-bottom: 2px solid rgba(226, 232, 240, 0.6);
 				}
-				.role-page-header p { margin: 0; font-size: 14px; color: #64748b; }
+				.role-page-header h2 {
+					margin: 0 0 8px 0;
+					font-size: 32px;
+					font-weight: 800;
+					color: #0f172a;
+					letter-spacing: -0.04em;
+				}
+				.role-page-header p {
+					margin: 0;
+					font-size: 15px;
+					color: #64748b;
+					font-weight: 500;
+				}
 
 				.role-toolbar {
-					display: flex; align-items: center; justify-content: space-between;
-					gap: 12px; margin: 16px 0 20px 0; padding: 14px 18px;
-					background: #ffffff; border: 1px solid rgba(148,163,184,0.18);
-					border-radius: 14px; box-shadow: 0 2px 8px rgba(2,6,23,0.04);
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					gap: 14px;
+					margin: 0 0 24px 0;
+					padding: 16px 20px;
+					background: linear-gradient(135deg, #ffffff, #f8fafc);
+					border: 1px solid rgba(2, 6, 23, 0.06);
+					border-radius: 16px;
+					box-shadow: 0 2px 12px rgba(2, 6, 23, 0.04);
 				}
 				.role-search {
-					flex: 1; max-width: 340px; padding: 9px 14px;
-					border: 1px solid rgba(148,163,184,0.3); border-radius: 10px;
-					font-size: 14px; color: #0f172a; background: #f8fafc;
-					outline: none; transition: border-color .15s, box-shadow .15s;
+					flex: 1;
+					max-width: 380px;
+					padding: 11px 16px;
+					border: 2px solid rgba(148,163,184,0.25);
+					border-radius: 12px;
+					font-size: 14px;
+					color: #0f172a;
+					background: rgba(248,250,252,0.8);
+					outline: none;
+					transition: all .2s ease;
+					font-weight: 500;
 				}
 				.role-search:focus {
-					border-color: #3b82f6;
-					box-shadow: 0 0 0 3px rgba(59,130,246,0.12); background: #fff;
+					border-color: #8b5cf6;
+					box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+					background: #fff;
 				}
+
+				.role-add-btn {
+					display: inline-flex;
+					align-items: center;
+					gap: 8px;
+					padding: 11px 20px;
+					background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+					color: white;
+					border: none;
+					border-radius: 12px;
+					font-size: 14px;
+					font-weight: 700;
+					cursor: pointer;
+					transition: all 0.2s ease;
+					box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+					white-space: nowrap;
+				}
+				.role-add-btn:hover {
+					transform: translateY(-2px);
+					box-shadow: 0 6px 20px rgba(139, 92, 246, 0.35);
+					background: linear-gradient(135deg, #7c3aed, #6d28d9);
+				}
+				.role-add-btn:active {
+					transform: translateY(0);
+				}
+				.role-add-btn svg {
+					width: 16px;
+					height: 16px;
+				}
+
 				.role-table-card {
-					background: #ffffff; border: 1px solid rgba(148,163,184,0.18);
-					border-radius: 14px; box-shadow: 0 2px 8px rgba(2,6,23,0.04); overflow: hidden;
+					background: #ffffff;
+					border: 2px solid rgba(226, 232, 240, 0.8);
+					border-radius: 20px;
+					box-shadow: 0 10px 40px rgba(2, 6, 23, 0.08), 0 2px 8px rgba(2, 6, 23, 0.04);
+					overflow: hidden;
+					transition: all .3s ease;
 				}
-				.role-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+				.role-table-card:hover {
+					box-shadow: 0 20px 60px rgba(2, 6, 23, 0.12), 0 4px 16px rgba(2, 6, 23, 0.06);
+					transform: translateY(-2px);
+				}
+
+				.role-table {
+					width: 100%;
+					border-collapse: separate;
+					border-spacing: 0;
+					font-size: 14px;
+				}
 				.role-table thead tr {
-					background: #f8fafc; border-bottom: 2px solid rgba(148,163,184,0.18);
+					background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+					border-bottom: 3px solid #cbd5e1;
 				}
 				.role-table thead th {
-					padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700;
-					text-transform: uppercase; letter-spacing: .06em; color: #64748b;
+					padding: 18px 24px;
+					text-align: left;
+					font-size: 11px;
+					font-weight: 800;
+					text-transform: uppercase;
+					letter-spacing: .08em;
+					color: #475569;
+					position: sticky;
+					top: 0;
+					z-index: 10;
+				}
+				.role-table thead th:first-child {
+					padding-left: 32px;
 				}
 				.role-table tbody tr {
-					border-bottom: 1px solid rgba(148,163,184,0.1); transition: background .12s;
+					border-bottom: 1px solid #e2e8f0;
+					transition: all .25s ease;
+					background: #ffffff;
 				}
-				.role-table tbody tr:hover { background: rgba(139,92,246,0.03); }
-				.role-table tbody tr:last-child { border-bottom: none; }
-				.role-table td { padding: 13px 16px; color: #0f172a; vertical-align: middle; }
-				.role-table td.num-col { width: 56px; color: #94a3b8; font-weight: 600; }
-				.role-table td.action-col { width: 80px; text-align: center; }
+				.role-table tbody tr:nth-child(even) {
+					background: rgba(248, 250, 252, 0.5);
+				}
+				.role-table tbody tr:hover {
+					background: linear-gradient(90deg, rgba(139, 92, 246, 0.06), rgba(139, 92, 246, 0.02));
+					transform: translateX(4px);
+					box-shadow: 0 4px 12px rgba(2, 6, 23, 0.06), inset 3px 0 0 #8b5cf6;
+				}
+				.role-table tbody tr:last-child {
+					border-bottom: none;
+				}
+				.role-table td {
+					padding: 20px 24px;
+					color: #0f172a;
+					vertical-align: middle;
+				}
+				.role-table td:first-child {
+					padding-left: 32px;
+				}
+				.role-table td.num-col {
+					width: 80px;
+					padding-right: 32px;
+					color: #64748b;
+					font-weight: 700;
+					font-size: 14px;
+				}
+				.role-table td.action-col {
+					width: 140px;
+					text-align: center;
+					padding-right: 32px;
+				}
 
 				.role-badge {
-					display: inline-flex; align-items: center; padding: 5px 14px;
-					border-radius: 999px; background: rgba(139,92,246,0.08);
-					border: 1px solid rgba(139,92,246,0.2); color: #6d28d9;
-					font-size: 13px; font-weight: 700; letter-spacing: .04em;
+					display: inline-flex;
+					align-items: center;
+					padding: 8px 20px;
+					border-radius: 8px;
+					background: linear-gradient(135deg, #e9d5ff, #d8b4fe);
+					border: 1.5px solid #c084fc;
+					color: #6d28d9;
+					font-size: 13px;
+					font-weight: 700;
+					letter-spacing: .04em;
+					transition: all .25s ease;
+					box-shadow: 0 1px 3px rgba(139, 92, 246, 0.1);
 				}
+				.role-table tbody tr:hover .role-badge {
+					background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+					border-color: #7c3aed;
+					color: #ffffff;
+					transform: scale(1.03);
+					box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+				}
+
 				.role-edit-btn {
-					display: inline-flex; align-items: center; justify-content: center;
-					width: 34px; height: 34px; border-radius: 10px;
-					border: 1px solid rgba(148,163,184,0.28); background: #f8fafc;
-					color: #475569; cursor: pointer;
-					transition: background .14s, border-color .14s, color .14s, box-shadow .14s;
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					gap: 8px;
+					padding: 10px 20px;
+					border-radius: 10px;
+					border: 1.5px solid #cbd5e1;
+					background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+					color: #475569;
+					cursor: pointer;
+					font-size: 13px;
+					font-weight: 700;
+					transition: all .25s ease;
+					box-shadow: 0 2px 6px rgba(2, 6, 23, 0.06);
 				}
 				.role-edit-btn:hover {
-					background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.35);
-					color: #7c3aed; box-shadow: 0 4px 10px rgba(139,92,246,0.12);
+					background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+					border-color: #7c3aed;
+					color: #fff;
+					transform: translateY(-3px);
+					box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
 				}
+				.role-edit-btn:active {
+					transform: translateY(-1px);
+				}
+				.role-edit-btn svg {
+					width: 14px;
+					height: 14px;
+				}
+
 				.role-danger-btn {
-					background: linear-gradient(135deg,#ef4444,#dc2626); color: #fff;
-					border: none; border-radius: 10px; padding: 10px 16px;
-					font-weight: 700; cursor: pointer; font-size: 14px;
+					background: linear-gradient(135deg,#ef4444,#dc2626);
+					color: #fff;
+					border: none;
+					border-radius: 10px;
+					padding: 10px 16px;
+					font-weight: 700;
+					cursor: pointer;
+					font-size: 14px;
 				}
-				.role-danger-btn:hover { background: linear-gradient(135deg,#dc2626,#b91c1c); }
-				.role-danger-btn:disabled { opacity:.6; cursor:not-allowed; }
+				.role-danger-btn:hover {
+					background: linear-gradient(135deg,#dc2626,#b91c1c);
+				}
+				.role-danger-btn:disabled {
+					opacity:.6;
+					cursor:not-allowed;
+				}
+
 				.role-footer {
-					display: flex; align-items: center; justify-content: space-between;
-					margin-top: 14px; font-size: 13px; color: #94a3b8; font-weight: 500;
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					margin-top: 24px;
+					padding: 16px 24px;
+					background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+					border: 1px solid #e2e8f0;
+					border-radius: 14px;
+					font-size: 13px;
+					color: #475569;
+					font-weight: 600;
+					box-shadow: 0 2px 8px rgba(2, 6, 23, 0.04);
+				}
+
+				.role-error-banner {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					background: linear-gradient(135deg, #fef2f2, #fee2e2);
+					border: 1px solid #fecaca;
+					color: #7f1d1d;
+					padding: 14px 20px;
+					border-radius: 12px;
+					margin-bottom: 20px;
+					font-size: 14px;
+					font-weight: 600;
+					box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+				}
+				.role-error-banner button {
+					background: none;
+					border: none;
+					color: #dc2626;
+					font-weight: 700;
+					cursor: pointer;
+					padding: 6px 14px;
+					border-radius: 8px;
+					transition: background 0.2s;
+				}
+				.role-error-banner button:hover {
+					background: rgba(220, 38, 38, 0.1);
+				}
+
+				.role-empty-state {
+					text-align: center;
+					padding: 60px 20px;
+					color: #94a3b8;
+				}
+				.role-empty-state svg {
+					width: 48px;
+					height: 48px;
+					margin-bottom: 16px;
+					opacity: 0.4;
+				}
+				.role-empty-state p {
+					margin: 8px 0 0 0;
+					font-size: 14px;
+					font-weight: 500;
+				}
+
+				@keyframes spin {
+					to { transform: rotate(360deg); }
+				}
+				.role-loading {
+					text-align: center;
+					padding: 60px 20px;
+					color: #64748b;
+				}
+				.role-loading-spinner {
+					width: 40px;
+					height: 40px;
+					border: 3px solid #e2e8f0;
+					border-top-color: #8b5cf6;
+					border-radius: 50%;
+					margin: 0 auto 16px;
+					animation: spin 0.8s linear infinite;
 				}
 			`}</style>
 
@@ -349,13 +579,18 @@ const RolesConfiguration = () => {
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 					/>
-					<button className="btn-primary" onClick={() => setOpenAdd(true)}>+ Add Role</button>
+					<button className="role-add-btn" onClick={() => setOpenAdd(true)}>
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+							<path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/>
+						</svg>
+						Add Role
+					</button>
 				</div>
 
 				{fetchError && (
-					<div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#7f1d1d', padding: '10px 16px', borderRadius: 10, marginBottom: 16, fontSize: 14 }}>
-						{fetchError}
-						<button style={{ marginLeft: 12, background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }} onClick={fetchRoles}>Retry</button>
+					<div className="role-error-banner">
+						<span>{fetchError}</span>
+						<button onClick={fetchRoles}>Retry</button>
 					</div>
 				)}
 
@@ -363,14 +598,21 @@ const RolesConfiguration = () => {
 					<table className="role-table">
 						<thead>
 							<tr>
-								<th style={{ width: 56 }}>#</th>
+								<th style={{ width: 80 }}>#</th>
 								<th>Role Name</th>
-								<th style={{ width: 80, textAlign: 'center' }}>Actions</th>
+								<th style={{ width: 140, textAlign: 'center' }}>Actions</th>
 							</tr>
 						</thead>
 						<tbody>
 							{loading && (
-								<tr><td colSpan={3} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Loading roles…</td></tr>
+								<tr>
+									<td colSpan={3}>
+										<div className="role-loading">
+											<div className="role-loading-spinner"></div>
+											<p>Loading roles…</p>
+										</div>
+									</td>
+								</tr>
 							)}
 							{!loading && filtered.map((r, i) => (
 								<tr key={r.id}>
@@ -379,21 +621,28 @@ const RolesConfiguration = () => {
 									<td className="action-col">
 										<button
 											className="role-edit-btn"
-											title="Edit"
+											title="Edit role"
 											aria-label={`Edit ${r.role}`}
 											onClick={() => setEditingRole(r)}
 										>
-											<svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-												<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+											<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+												<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
 											</svg>
+											Edit
 										</button>
 									</td>
 								</tr>
 							))}
 							{!loading && filtered.length === 0 && !fetchError && (
 								<tr>
-									<td colSpan={3} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
-										{search ? `No roles match "${search}".` : 'No roles yet. Add one to get started.'}
+									<td colSpan={3}>
+										<div className="role-empty-state">
+											<svg viewBox="0 0 16 16" fill="currentColor">
+												<path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+												<path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
+											</svg>
+											<p>{search ? `No roles match "${search}".` : 'No roles yet. Add one to get started.'}</p>
+										</div>
 									</td>
 								</tr>
 							)}

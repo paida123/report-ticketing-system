@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import UserService from '../../../services/user.service';
 import DepartmentService from '../../../services/department.service';
@@ -6,7 +6,7 @@ import RoleService from '../../../services/role.service';
 import './userManagement.css';
 
 
-/* â”€â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Toast ─────────────────────────────────────────────────────────────── */
 const Toast = ({ msg, type, onDone }) => {
 	useEffect(() => { const t = setTimeout(onDone, 3200); return () => clearTimeout(t); }, [onDone]);
 	const bg = { success: '#10b981', error: '#ef4444', info: '#3b82f6' };
@@ -17,7 +17,7 @@ const Toast = ({ msg, type, onDone }) => {
 	);
 };
 
-/* â”€â”€â”€ Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Status Badge ───────────────────────────────────────────────────────── */
 const STATUS_META = {
 	ACTIVE:      { label: 'Active',      bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', color: '#065f46' },
 	DEACTIVATED: { label: 'Deactivated', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.3)', color: '#334155' },
@@ -33,13 +33,13 @@ const StatusBadge = ({ status }) => {
 	);
 };
 
-/* â”€â”€â”€ Generate temp password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Generate temp password ─────────────────────────────────────────────── */
 const genPassword = () => {
 	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
 	return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 };
 
-/* â”€â”€â”€ Shared options hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Shared options hook ────────────────────────────────────────────────── */
 const useOptions = () => {
 	const [roles, setRoles] = useState([]);
 	const [departments, setDepts] = useState([]);
@@ -50,7 +50,7 @@ const useOptions = () => {
 	return { roles, departments };
 };
 
-/* â”€â”€â”€ Add User Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Add User Modal ─────────────────────────────────────────────────────── */
 const AddUserModal = ({ onClose, onAdded }) => {
 	const { roles, departments } = useOptions();
 	const [form, setForm] = useState({ first_name:'', last_name:'', email:'', phone_number:'', role_id:'', department_id:'' });
@@ -87,34 +87,27 @@ const AddUserModal = ({ onClose, onAdded }) => {
 						<label>Last Name<input value={form.last_name} onChange={e => set('last_name', e.target.value)} placeholder="Doe" disabled={saving} /></label>
 					</div>
 					<div className="row">
-						<label>Email<input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="john.doe@company.com" disabled={saving} /></label>
-						<label>Phone Number<input value={form.phone_number} onChange={e => set('phone_number', e.target.value)} placeholder="+263 77 000 0000" disabled={saving} /></label>
+						<label>Email<input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="johndoe at company dot com" disabled={saving} /></label>
+						<label>Phone Number<input value={form.phone_number} onChange={e => set('phone_number', e.target.value)} placeholder="Enter phone number" disabled={saving} /></label>
 					</div>
 					<div className="row">
 						<label>Department
 							<select value={form.department_id} onChange={e => set('department_id', e.target.value)} disabled={saving}>
-								<option value="">Select departmentâ€¦</option>
+								<option value="">Select department</option>
 								{departments.map(d => <option key={d.id} value={d.id}>{d.department}</option>)}
 							</select>
 						</label>
 						<label>Role
 							<select value={form.role_id} onChange={e => set('role_id', e.target.value)} disabled={saving}>
-								<option value="">Select roleâ€¦</option>
+								<option value="">Select role</option>
 								{roles.map(r => <option key={r.id} value={r.id}>{r.role}</option>)}
 							</select>
 						</label>
 					</div>
-					<div className="row" style={{ alignItems:'flex-end' }}>
-						<label style={{ flex:1 }}>Temporary Password
-							<input value={form.temp_password} onChange={e => set('temp_password', e.target.value)} placeholder="Min 8 characters" disabled={saving} />
-						</label>
-						<button type="button" className="um-gen-btn" onClick={() => set('temp_password', genPassword())} disabled={saving} title="Auto-generate password">Auto-generate</button>
-					</div>
-					{form.temp_password && <p style={{ margin:'2px 0 6px', fontSize:12, color:'#64748b' }}>Password: <strong style={{ fontFamily:'monospace', color:'#0f172a' }}>{form.temp_password}</strong> â€” user must change on first login.</p>}
 					{error && <div className="field-error">{error}</div>}
 					<div className="row actions">
 						<button type="button" className="btn-muted" onClick={onClose} disabled={saving}>Cancel</button>
-						<button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Creatingâ€¦' : 'Create User'}</button>
+						<button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Creating' : 'Create User'}</button>
 					</div>
 				</form>
 			</div>
@@ -122,7 +115,7 @@ const AddUserModal = ({ onClose, onAdded }) => {
 	);
 };
 
-/* â”€â”€â”€ Edit User Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Edit User Modal ────────────────────────────────────────────────────── */
 const EditUserModal = ({ user, onClose, onUpdated, onStatusRequest }) => {
 	const { roles, departments } = useOptions();
 	const [form, setForm] = useState({ first_name: user.first_name||'', last_name: user.last_name||'', phone_number: user.phone_number||'', role_id: user.role?.id||user.role_id||'', department_id: user.department?.id||user.department_id||'' });
@@ -158,13 +151,13 @@ const EditUserModal = ({ user, onClose, onUpdated, onStatusRequest }) => {
 					<div className="row">
 						<label>Department
 							<select value={form.department_id} onChange={e => set('department_id', e.target.value)} disabled={saving}>
-								<option value="">Selectâ€¦</option>
+								<option value="">Select department</option>
 								{departments.map(d => <option key={d.id} value={d.id}>{d.department}</option>)}
 							</select>
 						</label>
 						<label>Role
 							<select value={form.role_id} onChange={e => set('role_id', e.target.value)} disabled={saving}>
-								<option value="">Selectâ€¦</option>
+								<option value="">Select role</option>
 								{roles.map(r => <option key={r.id} value={r.id}>{r.role}</option>)}
 							</select>
 						</label>
@@ -174,7 +167,7 @@ const EditUserModal = ({ user, onClose, onUpdated, onStatusRequest }) => {
 						<button type="button" className="um-status-btn" onClick={() => { onStatusRequest(user); onClose(); }} disabled={saving}>Change Status</button>
 						<div style={{ display:'flex', gap:8 }}>
 							<button type="button" className="btn-muted" onClick={onClose} disabled={saving}>Cancel</button>
-							<button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Savingâ€¦' : 'Save'}</button>
+							<button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
 						</div>
 					</div>
 				</form>
@@ -183,7 +176,7 @@ const EditUserModal = ({ user, onClose, onUpdated, onStatusRequest }) => {
 	);
 };
 
-/* â”€â”€â”€ Status Change Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Status Change Modal ────────────────────────────────────────────────── */
 const StatusModal = ({ user, onClose, onChanged }) => {
 	const [status, setStatus] = useState(user.status || 'ACTIVE');
 	const [saving, setSaving] = useState(false);
@@ -206,7 +199,7 @@ const StatusModal = ({ user, onClose, onChanged }) => {
 			<div className="um-modal small" onClick={e => e.stopPropagation()}>
 				<h3>Change Status</h3>
 				<p style={{ margin:'0 0 16px', fontSize:13, color:'#64748b' }}>
-					<strong>{user.first_name} {user.last_name}</strong> â€” current: <StatusBadge status={user.status} />
+					<strong>{user.first_name} {user.last_name}</strong> — current: <StatusBadge status={user.status} />
 				</p>
 				<div className="row">
 					<label style={{ width:'100%' }}>New Status
@@ -220,19 +213,19 @@ const StatusModal = ({ user, onClose, onChanged }) => {
 				{error && <div className="field-error" style={{ marginBottom:10 }}>{error}</div>}
 				<div className="row actions">
 					<button className="btn-muted" onClick={onClose} disabled={saving}>Cancel</button>
-					<button className="btn-primary" onClick={confirm} disabled={saving}>{saving ? 'Savingâ€¦' : 'Update Status'}</button>
+					<button className="btn-primary" onClick={confirm} disabled={saving}>{saving ? 'Saving…' : 'Update Status'}</button>
 				</div>
 			</div>
 		</div>, document.body
 	);
 };
 
-/* â”€â”€â”€ View User Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── View User Modal ────────────────────────────────────────────────────── */
 const ViewUserModal = ({ user, onClose, onEdit }) => {
 	const detail = (label, value) => (
 		<div style={{ marginBottom:10 }}>
 			<div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:2 }}>{label}</div>
-			<div style={{ fontSize:14, color:'#0f172a', fontWeight:500 }}>{value || 'â€”'}</div>
+			<div style={{ fontSize:14, color:'#0f172a', fontWeight:500 }}>{value || '—'}</div>
 		</div>
 	);
 	return createPortal(
@@ -253,7 +246,7 @@ const ViewUserModal = ({ user, onClose, onEdit }) => {
 					{detail('Department', user.department?.department)}
 					{detail('Role', user.role?.role)}
 					{detail('Last Login', user.last_login ? new Date(user.last_login).toLocaleString() : 'Never')}
-					{detail('Password Pending', user.is_password_pending ? 'Yes â€” must change on login' : 'No')}
+					{detail('Password Pending', user.is_password_pending ? 'Yes — must change on login' : 'No')}
 					{detail('MFA Enabled', user.mfa_enabled ? 'Yes' : 'No')}
 				</div>
 				<div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:20 }}>
@@ -265,7 +258,7 @@ const ViewUserModal = ({ user, onClose, onEdit }) => {
 	);
 };
 
-/* â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── Main Page ──────────────────────────────────────────────────────────── */
 const UserManagement = () => {
 	const [users, setUsers] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -339,44 +332,152 @@ const UserManagement = () => {
 					from { opacity:0; transform:translateY(12px); }
 					to   { opacity:1; transform:translateY(0); }
 				}
-				.um-page-header { margin-bottom:6px; }
-				.um-page-header h2 { margin:0 0 4px; font-size:22px; font-weight:800; color:#0f172a; letter-spacing:-.02em; }
-				.um-page-header p { margin:0; font-size:14px; color:#64748b; }
+				.um-page-header {
+					margin-bottom: 24px;
+					padding-bottom: 16px;
+					border-bottom: 2px solid rgba(226, 232, 240, 0.6);
+				}
+				.um-page-header h2 {
+					margin: 0 0 8px 0;
+					font-size: 32px;
+					font-weight: 800;
+					color: #0f172a;
+					letter-spacing: -0.04em;
+				}
+				.um-page-header p {
+					margin: 0;
+					font-size: 15px;
+					color: #64748b;
+					font-weight: 500;
+				}
 
 				.um-filter-bar {
-					display:flex; align-items:center; flex-wrap:wrap; gap:10px;
-					margin:16px 0 20px; padding:14px 18px;
-					background:#fff; border:1px solid rgba(148,163,184,0.18);
-					border-radius:14px; box-shadow:0 2px 8px rgba(2,6,23,0.04);
+					display: flex;
+					align-items: center;
+					flex-wrap: wrap;
+					gap: 14px;
+					margin: 0 0 24px 0;
+					padding: 16px 20px;
+					background: linear-gradient(135deg, #ffffff, #f8fafc);
+					border: 1px solid rgba(2, 6, 23, 0.06);
+					border-radius: 16px;
+					box-shadow: 0 2px 12px rgba(2, 6, 23, 0.04);
 				}
 				.um-search-input {
-					flex:1; min-width:200px; max-width:300px; padding:9px 14px;
-					border:1px solid rgba(148,163,184,0.3); border-radius:10px;
-					font-size:14px; color:#0f172a; background:#f8fafc; outline:none;
-					transition:border-color .15s, box-shadow .15s;
+					flex: 1;
+					min-width: 220px;
+					max-width: 380px;
+					padding: 11px 16px;
+					border: 2px solid rgba(148,163,184,0.25);
+					border-radius: 12px;
+					font-size: 14px;
+					color: #0f172a;
+					background: rgba(248,250,252,0.8);
+					outline: none;
+					transition: all .2s ease;
+					font-weight: 500;
 				}
-				.um-search-input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.12); background:#fff; }
+				.um-search-input:focus {
+					border-color: #3b82f6;
+					box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+					background: #fff;
+				}
 				.um-filter-select {
-					padding:9px 12px; border:1px solid rgba(148,163,184,0.3); border-radius:10px;
-					font-size:14px; color:#0f172a; background:#f8fafc; outline:none; cursor:pointer;
-					transition:border-color .15s;
+					padding: 10px 14px;
+					border: 2px solid rgba(148,163,184,0.25);
+					border-radius: 12px;
+					font-size: 14px;
+					color: #0f172a;
+					background: rgba(248,250,252,0.8);
+					outline: none;
+					cursor: pointer;
+					transition: all .2s ease;
+					font-weight: 500;
 				}
-				.um-filter-select:focus { border-color:#3b82f6; background:#fff; }
-				.um-filter-actions { margin-left:auto; display:flex; gap:8px; }
+				.um-filter-select:focus {
+					border-color: #3b82f6;
+					box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+					background: #fff;
+				}
+				.um-filter-actions {
+					margin-left: auto;
+					display: flex;
+					gap: 10px;
+				}
 
 				.um-users-table-card {
-					background:#fff; border:1px solid rgba(148,163,184,0.18);
-					border-radius:14px; box-shadow:0 2px 8px rgba(2,6,23,0.04); overflow:hidden;
+					background: #ffffff;
+					border: 2px solid rgba(226, 232, 240, 0.8);
+					border-radius: 20px;
+					box-shadow: 0 10px 40px rgba(2, 6, 23, 0.08), 0 2px 8px rgba(2, 6, 23, 0.04);
+					overflow: hidden;
+					transition: all .3s ease;
 				}
-				.um-users-table { width:100%; border-collapse:collapse; font-size:14px; }
-				.um-users-table thead tr { background:#f8fafc; border-bottom:2px solid rgba(148,163,184,0.18); }
-				.um-users-table thead th { padding:12px 14px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; white-space:nowrap; }
-				.um-users-table tbody tr { border-bottom:1px solid rgba(148,163,184,0.1); transition:background .12s; }
-				.um-users-table tbody tr:hover { background:rgba(59,130,246,0.03); }
-				.um-users-table tbody tr:last-child { border-bottom:none; }
-				.um-users-table td { padding:13px 14px; color:#0f172a; vertical-align:middle; }
-				.um-users-table td.num-col { width:48px; color:#94a3b8; font-weight:600; }
-				.um-users-table td.action-col { width:100px; text-align:center; }
+				.um-users-table-card:hover {
+					box-shadow: 0 20px 60px rgba(2, 6, 23, 0.12), 0 4px 16px rgba(2, 6, 23, 0.06);
+					transform: translateY(-2px);
+				}
+				.um-users-table {
+					width: 100%;
+					border-collapse: separate;
+					border-spacing: 0;
+					font-size: 14px;
+				}
+				.um-users-table thead tr {
+					background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+					border-bottom: 3px solid #cbd5e1;
+				}
+				.um-users-table thead th {
+					padding: 18px 20px;
+					text-align: left;
+					font-size: 11px;
+					font-weight: 800;
+					text-transform: uppercase;
+					letter-spacing: .08em;
+					color: #475569;
+					white-space: nowrap;
+					position: sticky;
+					top: 0;
+					z-index: 10;
+				}
+				.um-users-table thead th:first-child {
+					padding-left: 32px;
+				}
+				.um-users-table tbody tr {
+					border-bottom: 1px solid #e2e8f0;
+					transition: all .25s ease;
+					background: #ffffff;
+				}
+				.um-users-table tbody tr:nth-child(even) {
+					background: rgba(248, 250, 252, 0.5);
+				}
+				.um-users-table tbody tr:hover {
+					background: linear-gradient(90deg, rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.02));
+					transform: translateX(4px);
+					box-shadow: 0 4px 12px rgba(2, 6, 23, 0.06), inset 3px 0 0 #3b82f6;
+				}
+				.um-users-table tbody tr:last-child {
+					border-bottom: none;
+				}
+				.um-users-table td {
+					padding: 18px 20px;
+					color: #0f172a;
+					vertical-align: middle;
+				}
+				.um-users-table td:first-child {
+					padding-left: 32px;
+				}
+				.um-users-table td.num-col {
+					width: 60px;
+					color: #64748b;
+					font-weight: 700;
+					font-size: 14px;
+				}
+				.um-users-table td.action-col {
+					width: 120px;
+					text-align: center;
+					padding-right: 32px;
+				}
 
 				.um-avatar {
 					width:34px; height:34px; border-radius:50%;
@@ -389,15 +490,48 @@ const UserManagement = () => {
 				.um-name-cell .um-email { font-size:12px; color:#64748b; }
 
 				.um-icon-btn {
-					display:inline-flex; align-items:center; justify-content:center;
-					width:32px; height:32px; border-radius:8px;
-					border:1px solid rgba(148,163,184,0.28); background:#f8fafc;
-					color:#475569; cursor:pointer;
-					transition:background .14s, border-color .14s, color .14s, box-shadow .14s;
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					width: 36px;
+					height: 36px;
+					border-radius: 10px;
+					border: 1.5px solid #cbd5e1;
+					background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+					color: #475569;
+					cursor: pointer;
+					transition: all .25s ease;
+					box-shadow: 0 2px 6px rgba(2, 6, 23, 0.06);
 				}
-				.um-icon-btn:hover { background:rgba(59,130,246,0.08); border-color:rgba(59,130,246,0.35); color:#2563eb; box-shadow:0 4px 10px rgba(59,130,246,0.12); }
+				.um-icon-btn:hover {
+					background: linear-gradient(135deg, #3b82f6, #2563eb);
+					border-color: #2563eb;
+					color: #fff;
+					transform: translateY(-3px);
+					box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+				}
+				.um-icon-btn:active {
+					transform: translateY(-1px);
+				}
+				.um-icon-btn svg {
+					width: 16px;
+					height: 16px;
+				}
 
-				.um-pagination { display:flex; align-items:center; justify-content:space-between; margin-top:14px; font-size:13px; color:#94a3b8; font-weight:500; }
+				.um-pagination {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					margin-top: 24px;
+					padding: 16px 24px;
+					background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+					border: 1px solid #e2e8f0;
+					border-radius: 14px;
+					font-size: 13px;
+					color: #475569;
+					font-weight: 600;
+					box-shadow: 0 2px 8px rgba(2, 6, 23, 0.04);
+				}
 				.um-page-btns { display:flex; gap:6px; }
 				.um-page-btn { padding:6px 14px; border-radius:8px; border:1px solid rgba(148,163,184,0.3); background:#f8fafc; color:#475569; font-size:13px; font-weight:600; cursor:pointer; transition:background .12s; }
 				.um-page-btn:hover:not(:disabled) { background:#e2e8f0; }
@@ -426,18 +560,18 @@ const UserManagement = () => {
 
 			<div className="um-page">
 
-				{/* â”€â”€ Header â”€â”€ */}
+				{/* ── Header ── */}
 				<div className="um-page-header">
 					<h2>User Management</h2>
 					<p>View, create and manage all users in your organisation</p>
 				</div>
 
-				{/* â”€â”€ Filter bar â”€â”€ */}
+				{/* ── Filter bar ── */}
 				<div className="um-filter-bar">
 					<input
 						className="um-search-input"
 						type="search"
-						placeholder="Search by name, email or phoneâ€¦"
+						placeholder="Search by name email or phone"
 						value={search}
 						onChange={e => applyFilter(setSearch)(e.target.value)}
 					/>
@@ -456,7 +590,7 @@ const UserManagement = () => {
 					</div>
 				</div>
 
-				{/* â”€â”€ Fetch error â”€â”€ */}
+				{/* ── Fetch error ── */}
 				{fetchError && (
 					<div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#7f1d1d', padding:'10px 16px', borderRadius:10, marginBottom:16, fontSize:14 }}>
 						{fetchError}
@@ -464,7 +598,7 @@ const UserManagement = () => {
 					</div>
 				)}
 
-				{/* â”€â”€ Table â”€â”€ */}
+				{/* ── Table ── */}
 				<div className="um-users-table-card">
 					<table className="um-users-table">
 						<thead>
@@ -479,7 +613,7 @@ const UserManagement = () => {
 							</tr>
 						</thead>
 						<tbody>
-							{loading && <tr><td colSpan={7} style={{ textAlign:'center', padding:40, color:'#94a3b8' }}>Loading usersâ€¦</td></tr>}
+							{loading && <tr><td colSpan={7} style={{ textAlign:'center', padding:40, color:'#94a3b8' }}>Loading users…</td></tr>}
 							{!loading && users.map((u, i) => (
 								<tr key={u.id}>
 									<td className="num-col">{(page - 1) * LIMIT + i + 1}</td>
@@ -492,17 +626,21 @@ const UserManagement = () => {
 											</div>
 										</div>
 									</td>
-									<td style={{ color:'#475569' }}>{u.phone_number || 'â€”'}</td>
-									<td style={{ color:'#475569' }}>{u.department?.department || 'â€”'}</td>
-									<td style={{ color:'#475569' }}>{u.role?.role || 'â€”'}</td>
+									<td style={{ color:'#475569' }}>{u.phone_number || '—'}</td>
+									<td style={{ color:'#475569' }}>{u.department?.department || '—'}</td>
+									<td style={{ color:'#475569' }}>{u.role?.role || '—'}</td>
 									<td><StatusBadge status={u.status} /></td>
 									<td className="action-col">
 										<div style={{ display:'flex', gap:6, justifyContent:'center' }}>
 											<button className="um-icon-btn" title="View details" onClick={() => setViewing(u)}>
-												<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5c5.5 0 10 4.5 11 7-1 2.5-5.5 7-11 7S2 14.5 1 12c1-2.5 5.5-7 11-7z" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="2"/></svg>
+												<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+													<path d="M8 3C4.5 3 1.5 5.5 0.5 8c1 2.5 4 5 7.5 5s6.5-2.5 7.5-5c-1-2.5-4-5-7.5-5zm0 8c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-4.5c-0.8 0-1.5 0.7-1.5 1.5s0.7 1.5 1.5 1.5 1.5-0.7 1.5-1.5-0.7-1.5-1.5-1.5z"/>
+												</svg>
 											</button>
 											<button className="um-icon-btn" title="Edit user" onClick={() => setEditing(u)}>
-												<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
+												<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+													<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+												</svg>
 											</button>
 										</div>
 									</td>
@@ -517,24 +655,24 @@ const UserManagement = () => {
 					</table>
 				</div>
 
-				{/* â”€â”€ Pagination â”€â”€ */}
+				{/* ── Pagination ── */}
 				{!loading && totalItems > 0 && (
 					<div className="um-pagination">
-						<span>Showing {(page - 1) * LIMIT + 1}â€“{Math.min(page * LIMIT, totalItems)} of {totalItems} user{totalItems !== 1 ? 's' : ''}</span>
+						<span>Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, totalItems)} of {totalItems} user{totalItems !== 1 ? 's' : ''}</span>
 						<div className="um-page-btns">
-							<button className="um-page-btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>â† Prev</button>
+							<button className="um-page-btn" onClick={() => setPage(p => p - 1)} disabled={page <= 1}>← Prev</button>
 							{Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
 								const pg = totalPages <= 5 ? i + 1 : Math.max(1, page - 2) + i;
 								if (pg > totalPages) return null;
 								return <button key={pg} className={`um-page-btn${page === pg ? ' active' : ''}`} onClick={() => setPage(pg)}>{pg}</button>;
 							})}
-							<button className="um-page-btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next â†’</button>
+							<button className="um-page-btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Next →</button>
 						</div>
 					</div>
 				)}
 			</div>
 
-			{/* â”€â”€ Modals â”€â”€ */}
+			{/* ── Modals ── */}
 			{openAdd && <AddUserModal onClose={() => setOpenAdd(false)} onAdded={onAdded} />}
 			{editing && <EditUserModal user={editing} onClose={() => setEditing(null)} onUpdated={onUpdated} onStatusRequest={u => { setEditing(null); setStatusTarget(u); }} />}
 			{viewing && <ViewUserModal user={viewing} onClose={() => setViewing(null)} onEdit={u => { setViewing(null); setEditing(u); }} />}
@@ -545,3 +683,4 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+

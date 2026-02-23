@@ -1,268 +1,123 @@
-import React, { useEffect, useState } from 'react';
-import './SlaPage.css';
+import React, { useCallback, useEffect, useState } from "react";
+import PageHeader from "../../../components/PageHeader/PageHeader";
+import SlaService from "../../../services/sla.service";
+import TicketService from "../../../services/ticket.service";
+import "../../admin.css";
+import "../adminDashboard/AdminDashboard.css";
+import "./SlaPage.css";
 
-const DEFAULT_SLA_SETTINGS = { Incident: 24, Request: 48, Bug: 72 };
+const SlaPage = () => {
+  const [slaData, setSlaData] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState("");
+  
+  const [deptFilter, setDeptFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [query, setQuery] = useState("");
+  
+  // Pagination
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
 
-const mulberry32 = (seed) => {
-  let t = seed >>> 0;
-  return () => {
-    t += 0x6D2B79F5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-};
+  // Load data
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setLoadErr("");
+    try {
+      const [slaRes, ticketsRes] = await Promise.all([
+        SlaService.getAllSla({ limit: 1000 }),
+        TicketService.getAllTickets({ limit: 1000 }),
+      ]);
 
-const pick = (rng, list) => list[Math.floor(rng() * list.length)];
+      const slaArr = slaRes?.data?.data || [];
+      const ticketsArr = ticketsRes?.data?.data?.tickets || [];
 
-const generateSampleTickets = (count = 48) => {
-  const rng = mulberry32(20260216);
-
-  const departments = ['IT', 'Finance', 'HR', 'Operations', 'Procurement'];
-  const owners = ['Maya Patel', 'Jonathan Kim', 'Alice Mbatha', 'Priya Singh', 'Sam Lee', 'Alex Doe'];
-  const assignees = ['Alice Mbatha', 'Bob Stone', 'Charlie', 'Maya Patel', 'Jonathan Kim'];
-  const requestedBy = ['Sarah L.', 'Carlos M.', 'QA Team', 'External', 'Finance Bot', 'Amir K.', 'Nadia P.'];
-  const ticketTypes = ['Incident', 'Request', 'Bug'];
-  const subjects = {
-    Incident: ['Cannot login', 'System outage', 'VPN not connecting', 'Email down', 'Account locked'],
-    Request: ['Invoice request', 'New laptop request', 'Access request', 'Payroll update', 'Software install'],
-    Bug: ['UI bug on dashboard', 'Export CSV not working', 'Sorting issue', 'Broken link', 'Form validation bug'],
-  };
-
-  const tickets = [];
-  for (let i = 0; i < count; i += 1) {
-    const ticketType = pick(rng, ticketTypes);
-    const slaHours = DEFAULT_SLA_SETTINGS[ticketType] ?? 24;
-
-    // Bias elapsed time so reports show a healthy mix of met / at-risk / breached.
-    // - 15% overdue
-    // - 15% breached (elapsed > SLA)
-    // - 20% at-risk (remaining within 25% of SLA)
-    // - rest comfortably within SLA
-    const roll = rng();
-    let status = pick(rng, ['open', 'pending', 'open', 'pending', 'closed']);
-    let elapsedHours;
-
-    if (roll < 0.15) {
-      status = 'overdue';
-      elapsedHours = slaHours * (1.1 + rng() * 1.2);
-    } else if (roll < 0.30) {
-      status = pick(rng, ['open', 'pending']);
-      elapsedHours = slaHours * (1.05 + rng() * 0.8);
-    } else if (roll < 0.50) {
-      status = pick(rng, ['open', 'pending']);
-      elapsedHours = Math.max(1, slaHours * (0.78 + rng() * 0.20));
-    } else {
-      elapsedHours = Math.max(1, slaHours * (0.10 + rng() * 0.60));
+      setSlaData(slaArr);
+      setTickets(ticketsArr);
+    } catch (err) {
+      console.error("Error loading SLA data:", err);
+      setLoadErr("Failed to load SLA data. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    if (status === 'closed') {
-      // closed tickets should usually be within SLA
-      elapsedHours = Math.max(1, slaHours * (0.10 + rng() * 0.70));
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Get unique departments - use correct API path
+  const departments = [
+    "All",
+    ...Array.from(new Set(slaData.map((s) => s.ticket_department).filter(Boolean))),
+  ];
+
+  // helper to compute grade color
+  const gradeColor = (g) => {
+    switch ((g || "").toUpperCase()) {
+      case "EXCELLENT":
+        return "#10b981";
+      case "ON_TARGET":
+        return "#3b82f6";
+      case "POOR":
+        return "#ef4444";
+      default:
+        return "#94a3b8";
     }
+  };
 
-    const createdAt = new Date(Date.now() - elapsedHours * 60 * 60 * 1000).toISOString();
-    const id = `TKT-${String(1000 + i)}`;
+  const isMet = (r) => r.grade === "EXCELLENT" || r.grade === "ON_TARGET";
 
-    tickets.push({
-      id,
-      subject: pick(rng, subjects[ticketType] || subjects.Incident),
-      status,
-      owner: pick(rng, owners),
-      requestedBy: pick(rng, requestedBy),
-      assignee: pick(rng, assignees),
-      ticketType,
-      department: pick(rng, departments),
-      createdAt,
+  // Enrich SLA data with ticket information
+  const enrichedSla = slaData.map((sla) => {
+    const ticket = tickets.find((t) => t.id === sla.ticket_id);
+    const department = sla.ticket_department || "Unknown";
+    const breached = sla.grade === "POOR";
+    const atRisk = sla.grade === "ON_TARGET";
+
+    return {
+      ...sla,
+      department,
+      ticket,
+      breached,
+      atRisk,
+    };
+  });
+
+  // Filter by department
+  let visibleSla = deptFilter === "All" ? enrichedSla : enrichedSla.filter((s) => s.department === deptFilter);
+
+  // Filter by SLA status
+  if (statusFilter !== "All") {
+    visibleSla = visibleSla.filter((s) => {
+      if (statusFilter === "Met") return isMet(s);
+      if (statusFilter === "At Risk") return s.atRisk;
+      if (statusFilter === "Breached") return s.breached;
+      return true;
     });
   }
 
-  return tickets;
-};
-
-const SlaPage = () => {
-  // sample users (replace with real data source when available)
-  // added `avgResolutionHours` so we can compute SLA status per user
-  const users = [
-    { id: 1, name: 'Maya Patel', department: 'IT', ticketType: 'Incident', avgResolutionHours: 18, requestedBy: 'Sarah L.' },
-    { id: 2, name: 'Jonathan Kim', department: 'Finance', ticketType: 'Request', avgResolutionHours: 52, requestedBy: 'Carlos M.' },
-    { id: 3, name: 'Alice Mbatha', department: 'HR', ticketType: 'Incident', avgResolutionHours: 20, requestedBy: 'Nadia P.' },
-    { id: 4, name: 'John Doe', department: 'IT', ticketType: 'Bug', avgResolutionHours: 80, requestedBy: 'External' },
-    { id: 5, name: 'Priya Singh', department: 'Finance', ticketType: 'Incident', avgResolutionHours: 26, requestedBy: 'Amir K.' },
-  ];
-
-  const [deptFilter, setDeptFilter] = useState('All');
-  const [query, setQuery] = useState('');
-  const [slaModalOpen, setSlaModalOpen] = useState(false);
-  const [slaSettings, setSlaSettings] = useState(DEFAULT_SLA_SETTINGS);
-  const [slaModalInitial, setSlaModalInitial] = useState({ type: '', hours: 24 });
-  const [viewMode, setViewMode] = useState('table'); // 'table' | 'report'
-
-  // pagination
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
-  const [reportPage, setReportPage] = useState(1);
-  const [reportPageSize, setReportPageSize] = useState(10);
-
-  // tickets source: try localStorage, fallback to demo
-  const [tickets, setTickets] = useState(() => {
-    try {
-      const raw = localStorage.getItem('tickets');
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return generateSampleTickets(56);
-  });
-
-  const departments = ['All', ...Array.from(new Set(tickets.map((t) => t.department).filter(Boolean)))];
-
-  const filteredUsers = users.filter((u) => {
-    const matchesDept = deptFilter === 'All' || u.department === deptFilter;
+  // Filter by search query
+  const filteredSla = visibleSla.filter((s) => {
     const q = query.trim().toLowerCase();
-    const matchesQuery = !q || u.name.toLowerCase().includes(q) || u.ticketType.toLowerCase().includes(q);
-    return matchesDept && matchesQuery;
-  });
-
-
-  const SLAConfigModal = ({ open, onClose, initialType = '', initialHours = 24 }) => {
-    const types = Object.keys(slaSettings);
-    const [type, setType] = useState(initialType || types[0] || '');
-    const [hours, setHours] = useState(initialHours || 24);
-    const [confirmDelete, setConfirmDelete] = useState(false);
-
-    useEffect(() => {
-      // when modal opens or initial values change, set the inputs
-      if (open) {
-        setType(initialType || types[0] || '');
-        setHours(initialHours || slaSettings[initialType] || 24);
-      }
-    }, [open, initialType]);
-
-    useEffect(() => {
-      if (type && slaSettings[type] != null) setHours(slaSettings[type]);
-    }, [type]);
-
-    const save = () => {
-      if (!type || !type.trim()) return;
-      setSlaSettings((prev) => ({ ...prev, [type.trim()]: Number(hours) }));
-      onClose();
-    };
-
-    if (!open) return null;
-
+    if (!q) return true;
     return (
-      <div className="um-modal-overlay" role="dialog" aria-modal="true">
-        <div className="um-modal">
-          <div className="um-modal-header">
-            <h3>Configure SLA</h3>
-            <button className="close-btn" aria-label="Close configuration" onClick={onClose}>×</button>
-          </div>
-
-          <div className="um-modal-body">
-            <div className="sla-form-row">
-              <label>Ticket type</label>
-              {/* allow typing new ticket types but offer existing ones as suggestions */}
-              <input
-                list="ticket-types"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                placeholder="Type or select ticket type"
-              />
-              <datalist id="ticket-types">
-                {types.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </datalist>
-            </div>
-
-            <div className="sla-form-row">
-              <label>SLA (hours)</label>
-              <input type="number" min={1} value={hours} onChange={(e) => setHours(e.target.value)} />
-            </div>
-
-            <div className="sla-form-actions">
-              <button className="btn-primary" onClick={save}>Save</button>
-              <button className="btn-muted" onClick={onClose}>Cancel</button>
-              <button
-                className="btn-danger"
-                onClick={() => setConfirmDelete(true)}
-                title="Delete this ticket type SLA"
-              >
-                Delete
-              </button>
-            </div>
-
-            {confirmDelete && (
-              <div className="confirm-delete">
-                <div>Are you sure you want to delete the SLA for <strong>{type}</strong>? This will remove the setting for that ticket type.</div>
-                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                  <button className="btn-muted" onClick={() => setConfirmDelete(false)}>Cancel</button>
-                  <button className="btn-danger" onClick={() => {
-                    // remove the selected type from settings
-                    setSlaSettings(prev => {
-                      const copy = { ...prev };
-                      delete copy[type];
-                      return copy;
-                    });
-                    setConfirmDelete(false);
-                    onClose();
-                  }}>Yes, delete</button>
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginTop: 16 }}>
-              <strong>Current settings</strong>
-              <ul className="sla-current-list">
-                {Object.entries(slaSettings).map(([t, h]) => (
-                  <li key={t}>{t}: {h} hours</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+      (s.ticket_id || "").toLowerCase().includes(q) ||
+      (s.type || "").toLowerCase().includes(q) ||
+      (`${s.assigned_to?.first_name || ""} ${s.assigned_to?.last_name || ""}`).toLowerCase().includes(q) ||
+      (s.department || "").toLowerCase().includes(q)
     );
-  };
-
-  // helper to compute hours since created
-  const hrsSince = (iso) => {
-    try { const then = new Date(iso); return (Date.now() - then.getTime()) / (1000 * 60 * 60); } catch (e) { return 0; }
-  };
-
-  // compute report data from tickets and slaSettings
-  const enriched = tickets.map(t => {
-    const sla = slaSettings[t.ticketType] ?? 24;
-    const elapsed = Math.round(hrsSince(t.createdAt) * 10) / 10;
-    const remaining = Math.round((sla - elapsed) * 10) / 10;
-    const breached = (elapsed > sla) || t.status === 'overdue';
-    const atRisk = !breached && remaining <= Math.max(1, sla * 0.25) && t.status !== 'closed';
-    return { ...t, sla, elapsed, remaining, breached, atRisk };
   });
 
-  const byDept = enriched.reduce((acc, t) => { acc[t.department] = (acc[t.department] || 0) + 1; return acc; }, {});
-  const total = enriched.length;
-  const breachedCount = enriched.filter(t => t.breached).length;
-  const atRiskCount = enriched.filter(t => t.atRisk).length;
+  // KPI calculations
+  const total = visibleSla.length;
+  const breachedCount = visibleSla.filter((s) => s.breached).length;
+  const atRiskCount = visibleSla.filter((s) => s.atRisk).length;
+  const metCount = visibleSla.filter((s) => isMet(s)).length;
+  const avgSla = slaData.length > 0 ? Math.round(slaData.reduce((acc, s) => acc + (s.actual_sla || 0), 0) / slaData.length) : 0;
 
-  const visibleTickets = deptFilter === 'All' ? enriched : enriched.filter(t => t.department === deptFilter);
-
-  // filter tickets by department + search query for the SLA table view
-  const filteredTickets = visibleTickets.filter((t) => {
-    const q = query.trim().toLowerCase();
-    const matchesQuery = !q ||
-      (t.subject && t.subject.toLowerCase().includes(q)) ||
-      (t.owner && t.owner.toLowerCase().includes(q)) ||
-      (t.ticketType && t.ticketType.toLowerCase().includes(q)) ||
-      (t.assignee && t.assignee.toLowerCase().includes(q));
-    return matchesQuery;
-  });
-
-  // reset pagination when filters/view change
-  useEffect(() => {
-    setTablePage(1);
-    setReportPage(1);
-  }, [deptFilter, query, viewMode]);
-
+  // Pagination helper
   const paginate = (rows, page, pageSize) => {
     const safeSize = Math.max(1, Number(pageSize) || 10);
     const total = rows.length;
@@ -281,263 +136,253 @@ const SlaPage = () => {
     };
   };
 
-  const reportTickets = [...visibleTickets]
-    .filter((t) => t.breached || t.atRisk)
-    .sort((a, b) => (b.breached ? 1 : 0) - (a.breached ? 1 : 0) || (b.atRisk ? 1 : 0) - (a.atRisk ? 1 : 0));
+  const tablePager = paginate(filteredSla, tablePage, tablePageSize);
 
-  const tablePager = paginate(filteredTickets, tablePage, tablePageSize);
-  const reportPager = paginate(reportTickets, reportPage, reportPageSize);
-
-  // keep state pages clamped to computed page counts
+  // Reset pagination when filters change
   useEffect(() => {
-    if (tablePage !== tablePager.page) setTablePage(tablePager.page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tablePager.page]);
+    setTablePage(1);
+  }, [deptFilter, statusFilter, query]);
 
-  useEffect(() => {
-    if (reportPage !== reportPager.page) setReportPage(reportPager.page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportPager.page]);
-
-  const exportCsv = (rows = visibleTickets) => {
-    const exportRows = rows.map(t => ({ id: t.id, subject: t.subject, owner: t.owner, assignee: t.assignee, department: t.department, status: t.status, ticketType: t.ticketType, sla: t.sla, createdAt: t.createdAt }));
-    if (exportRows.length === 0) return;
-    const hdr = Object.keys(exportRows[0]).join(',') + '\n';
-    const body = exportRows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  // Export CSV
+  const exportCsv = (rows = filteredSla) => {
+    if (rows.length === 0) return alert("No data to export");
+    const exportRows = rows.map((s) => ({
+      ticket_id: s.ticket_id,
+      department: s.department,
+      assigned_to: `${s.assigned_to?.first_name || ""} ${s.assigned_to?.last_name || ""}`.trim(),
+      type: s.type,
+      expected_sla: s.expected_sla || "N/A",
+      actual_sla: s.actual_sla || "N/A",
+      grade: s.grade,
+    }));
+    const hdr = Object.keys(exportRows[0]).join(",") + "\n";
+    const body = exportRows
+      .map((r) =>
+        Object.values(r)
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
     const csv = hdr + body;
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'sla-report.csv'; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sla-report.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
     <>
-        <section className="panel sla-panel">
-          <div className="reports-actions">
-            <button className={`btn-primary ${viewMode==='report' ? 'active':''}`} onClick={() => setViewMode('report')}>Report</button>
-            <button className={`btn-muted ${viewMode==='table' ? 'active':''}`} onClick={() => setViewMode('table')}>SLA Table</button>
-            <button className="btn-primary" onClick={() => exportCsv()}>Export CSV</button>
-          </div>
-          <div className="reports-top">
-            {/* KPI circles moved below the controls for a cleaner header */}
-          </div>
-          <div className="kpi-circles" style={{marginTop:8}}>
-            <button className="kpi-circle" onClick={() => { setDeptFilter('All'); setViewMode('report'); }}>
-              <div className="kpi-number">{total}</div>
-              <div className="kpi-label">Total tickets</div>
-            </button>
-            <button className="kpi-circle warn" onClick={() => { setDeptFilter('All'); setViewMode('report'); }}>
-              <div className="kpi-number">{atRiskCount}</div>
-              <div className="kpi-label">At risk</div>
-            </button>
-            <button className="kpi-circle danger" onClick={() => { setDeptFilter('All'); setViewMode('report'); }}>
-              <div className="kpi-number">{breachedCount}</div>
-              <div className="kpi-label">Breached</div>
-            </button>
-            <button className="kpi-circle" onClick={() => { setDeptFilter('All'); setViewMode('report'); }}>
-              <div className="kpi-number">{Math.round((Object.values(slaSettings).reduce((a,b)=>a+b,0) / Object.keys(slaSettings).length) || 0)}</div>
-              <div className="kpi-label">Avg SLA (hrs)</div>
-            </button>
-          </div>
+      <PageHeader title="📊 SLA Management" subtitle="Monitor service level agreement compliance and performance metrics" />
 
-          <div className="sla-controls">
-            <div>
-              <label><strong>Department</strong></label>
-              <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
-                {departments.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+      <section className="panel sla-panel">
+        {loadErr && (
+          <div className="dashboard-error">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="10" cy="10" r="8"></circle>
+              <line x1="10" y1="6" x2="10" y2="10"></line>
+              <line x1="10" y1="13" x2="10.01" y2="13"></line>
+            </svg>
+            {loadErr}
+            <button onClick={loadData}>Retry</button>
+          </div>
+        )}
+
+        {/* KPI Cards */}
+        <div className="sla-kpi-grid">
+          <div className="sla-kpi-card" onClick={() => setDeptFilter("All")}>
+            <div className="kpi-icon-wrap blue">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+              </svg>
             </div>
-
-            <div>
-              <label><strong>Search</strong></label>
-              <input placeholder="Search users or ticket type" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <div className="kpi-content">
+              <div className="kpi-value">{loading ? "..." : total}</div>
+              <div className="kpi-title">Total Records</div>
             </div>
+          </div>
+          <div className="sla-kpi-card success" onClick={() => setDeptFilter("All")}>
+            <div className="kpi-icon-wrap green">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+              </svg>
+            </div>
+            <div className="kpi-content">
+              <div className="kpi-value">{loading ? "..." : metCount}</div>
+              <div className="kpi-title">SLA Met</div>
+            </div>
+          </div>
+          <div className="sla-kpi-card warning" onClick={() => setDeptFilter("All")}>
+            <div className="kpi-icon-wrap yellow">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+              </svg>
+            </div>
+            <div className="kpi-content">
+              <div className="kpi-value">{loading ? "..." : atRiskCount}</div>
+              <div className="kpi-title">At Risk</div>
+            </div>
+          </div>
+          <div className="sla-kpi-card danger" onClick={() => setDeptFilter("All")}>
+            <div className="kpi-icon-wrap red">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+            </div>
+            <div className="kpi-content">
+              <div className="kpi-value">{loading ? "..." : breachedCount}</div>
+              <div className="kpi-title">Breached</div>
+            </div>
+          </div>
+        </div>
 
-            {viewMode === 'table' && (
-              <div className="sla-actions">
-                <button className="btn-primary" onClick={() => {
-                  const first = Object.keys(slaSettings)[0] || '';
-                  setSlaModalInitial({ type: first, hours: slaSettings[first] ?? 24 });
-                  setSlaModalOpen(true);
-                }}>Configure SLA</button>
-                <button className="btn-primary add-new" onClick={() => {
-                  setSlaModalInitial({ type: '', hours: 24 });
-                  setSlaModalOpen(true);
-                }}>＋ Add New</button>
+        {/* Controls */}
+        <div className="sla-controls">
+          <div className="control-group">
+            <label>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{marginRight: '6px'}}>
+                <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+              </svg>
+              Department Filter
+            </label>
+            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+              {departments.map((d) => (
+                <option key={d} value={d}>
+                  {d === "All" ? "🌐 All Departments" : d}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="control-group">
+            <label>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{marginRight: '6px'}}>
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+              </svg>
+              SLA Status
+            </label>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="All">📊 All Status</option>
+              <option value="Met">✅ SLA Met</option>
+              <option value="At Risk">⚠️ At Risk</option>
+              <option value="Breached">❌ Breached</option>
+            </select>
+          </div>
+
+          <div className="control-group search-group">
+            <label>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{marginRight: '6px'}}>
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+              </svg>
+              Search
+            </label>
+            <div className="search-input-wrap">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="search-icon">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+              </svg>
+              <input placeholder="Search ticket ID, officer, or type..." value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
+          </div>
+
+          <button className="sla-export-btn" onClick={() => exportCsv()} disabled={filteredSla.length === 0}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/>
+              <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+            </svg>
+            Export CSV
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="dashboard-loading">
+            <div className="spinner"></div>
+            <p>Loading SLA data...</p>
+          </div>
+        ) : (
+          /* Table View */
+          <div className="sla-table-wrap">
+            <table className="user-tickets-table">
+              <thead>
+                <tr>
+                  <th className="id-col">Ticket ID</th>
+                  <th>Assigned Officer</th>
+                  <th>Department</th>
+                  <th>Type</th>
+                  <th>Expected (min)</th>
+                  <th>Actual (min)</th>
+                  <th>Grade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tablePager.slice.map((s) => {
+                  const gColor = gradeColor(s.grade);
+                  const officerName = `${s.assigned_to?.first_name || ""} ${s.assigned_to?.last_name || ""}`.trim() || "N/A";
+                  return (
+                    <tr key={s.id} className={s.breached ? "row-breached" : s.atRisk ? "row-atrisk" : ""}>
+                      <td className="id-col">{s.ticket_id}</td>
+                      <td>{officerName}</td>
+                      <td>{s.department}</td>
+                      <td>
+                        <span className={`status ${s.type.toLowerCase()}`}>{s.type}</span>
+                      </td>
+                      <td><strong>{s.expected_sla || "N/A"}</strong></td>
+                      <td><strong>{s.actual_sla || "N/A"}</strong></td>
+                      <td>
+                        <span className="sla-grade-badge" style={{ background: `${gColor}22`, color: gColor, padding: "6px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700 }}>
+                          {s.grade || "N/A"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filteredSla.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "60px 20px" }}>
+                      <div style={{ color: "#94a3b8", fontSize: "15px" }}>
+                        <strong>No SLA records match the filter.</strong>
+                        <p style={{ marginTop: "8px", fontSize: "13px" }}>Try adjusting your search or department filter.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {filteredSla.length > 0 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  Showing {tablePager.start + 1}–{tablePager.end} of {tablePager.total}
+                </div>
+
+                <div className="pagination-controls">
+                  <label className="pagination-size">
+                    Rows
+                    <select value={tablePageSize} onChange={(e) => setTablePageSize(Number(e.target.value) || 10)}>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </label>
+
+                  <button type="button" className="btn-muted" disabled={tablePager.page <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>
+                    Prev
+                  </button>
+                  <div className="pagination-page">
+                    Page {tablePager.page} of {tablePager.pages}
+                  </div>
+                  <button type="button" className="btn-muted" disabled={tablePager.page >= tablePager.pages} onClick={() => setTablePage((p) => Math.min(tablePager.pages, p + 1))}>
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>
-
-          {viewMode === 'table' ? (
-            <div className="table-wrap sla-table-wrap">
-              <table className="user-tickets-table">
-                <thead>
-                  <tr>
-                    <th className="id-col">ID</th>
-                    <th>Owner</th>
-                    <th>Department</th>
-                    <th>Ticket Type</th>
-                    <th>Requested By</th>
-                    <th>SLA (hours)</th>
-                    <th>SLA Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tablePager.slice.map((t) => {
-                    const slaMet = !t.breached;
-                    return (
-                      <tr key={t.id} className={t.breached? 'row-breached': t.atRisk? 'row-atrisk':''}>
-                        <td>{t.id}</td>
-                        <td>{t.owner}</td>
-                        <td>{t.department}</td>
-                        <td>{t.ticketType}</td>
-                        <td>{t.requestedBy ?? '-'}</td>
-                        <td>{t.sla ?? '-'}</td>
-                        <td className="sla-status" aria-label={slaMet ? 'SLA met' : 'SLA breached'}>
-                          <span className={`sla-dot ${slaMet ? 'ok' : 'breach'}`} aria-hidden="true" />
-                          <span className="sla-text">{slaMet ? 'Met' : 'Breached'}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filteredTickets.length === 0 && (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: 'center' }}>No tickets match the filter.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {filteredTickets.length > 0 && (
-                <div className="pagination">
-                  <div className="pagination-info">
-                    Showing {tablePager.start + 1}–{tablePager.end} of {tablePager.total}
-                  </div>
-
-                  <div className="pagination-controls">
-                    <label className="pagination-size">
-                      Rows
-                      <select value={tablePageSize} onChange={(e) => setTablePageSize(Number(e.target.value) || 10)}>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </label>
-
-                    <button
-                      type="button"
-                      className="btn-muted"
-                      disabled={tablePager.page <= 1}
-                      onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                    >
-                      Prev
-                    </button>
-                    <div className="pagination-page">Page {tablePager.page} of {tablePager.pages}</div>
-                    <button
-                      type="button"
-                      className="btn-muted"
-                      disabled={tablePager.page >= tablePager.pages}
-                      onClick={() => setTablePage((p) => Math.min(tablePager.pages, p + 1))}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="reports-table card">
-              <h3 style={{marginTop:12}}>Tickets At Risk & Breached</h3>
-              <div style={{display:'flex', justifyContent:'flex-end', marginBottom:8}}>
-                <button className="btn-primary small" onClick={() => exportCsv()}>Export CSV</button>
-              </div>
-              <div className="table-wrap">
-                <table className="user-tickets-table">
-                <thead>
-                  <tr>
-                    <th className="id-col">ID</th>
-                    <th>Owner</th>
-                    <th>Subject</th>
-                    <th>Type</th>
-                    <th>Dept</th>
-                    <th>SLA hrs</th>
-                    <th>Elapsed</th>
-                    <th>Remaining</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportPager.slice.map(t => (
-                      <tr key={t.id} className={t.breached? 'row-breached': t.atRisk? 'row-atrisk':''}>
-                        <td>{t.id}</td>
-                        <td>{t.owner}</td>
-                        <td>{t.subject}</td>
-                        <td>{t.ticketType}</td>
-                        <td>{t.department}</td>
-                        <td>{t.sla}</td>
-                        <td>{t.elapsed}</td>
-                        <td>{t.remaining < 0 ? 0 : t.remaining}</td>
-                        <td><span className={`status ${t.breached? 'breached': t.atRisk? 'atrisk': t.status}`}>{t.breached? 'breached' : t.atRisk? 'at-risk' : t.status}</span></td>
-                      </tr>
-                  ))}
-
-                  {reportTickets.length > 0 ? null : (
-                    <tr>
-                      <td colSpan={9} style={{ textAlign: 'center' }}>No at-risk or breached tickets for the current filters.</td>
-                    </tr>
-                  )}
-                </tbody>
-                </table>
-              </div>
-
-              {reportTickets.length > 0 && (
-                <div className="pagination">
-                  <div className="pagination-info">
-                    Showing {reportPager.start + 1}–{reportPager.end} of {reportPager.total}
-                  </div>
-
-                  <div className="pagination-controls">
-                    <label className="pagination-size">
-                      Rows
-                      <select value={reportPageSize} onChange={(e) => setReportPageSize(Number(e.target.value) || 10)}>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </label>
-
-                    <button
-                      type="button"
-                      className="btn-muted"
-                      disabled={reportPager.page <= 1}
-                      onClick={() => setReportPage((p) => Math.max(1, p - 1))}
-                    >
-                      Prev
-                    </button>
-                    <div className="pagination-page">Page {reportPager.page} of {reportPager.pages}</div>
-                    <button
-                      type="button"
-                      className="btn-muted"
-                      disabled={reportPager.page >= reportPager.pages}
-                      onClick={() => setReportPage((p) => Math.min(reportPager.pages, p + 1))}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <SLAConfigModal
-            open={slaModalOpen}
-            onClose={() => setSlaModalOpen(false)}
-            initialType={slaModalInitial.type}
-            initialHours={slaModalInitial.hours}
-          />
-        </section>
+        )}
+      </section>
     </>
   );
 };

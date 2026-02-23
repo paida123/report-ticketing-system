@@ -72,10 +72,10 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       .finally(() => setDeptLoading(false));
   }, [user?.id, bypassDeptFilter]);
 
-  const loadSla = useCallback(() => {
+  const loadSla = useCallback((params = {}) => {
     setSlaLoading(true);
     setLoadErr('');
-    SlaService.getAllSla()
+    SlaService.getAllSla({ limit: 500, ...params })
       .then(r => {
         const d = r?.data;
         setSlaData(Array.isArray(d?.data) ? d.data : []);
@@ -95,7 +95,38 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       .finally(() => setTicketsLoading(false));
   }, []);
 
-  useEffect(() => { loadSla(); loadTickets(); }, [loadSla, loadTickets]);
+  // Load SLA data based on active tab and user role
+  useEffect(() => {
+    if (deptLoading) return; // Wait for department to load
+    
+    const isOfficerRole = user?.role?.toLowerCase() === 'officer';
+    
+    if (activeTab === 'department') {
+      // Department view
+      if (bypassDeptFilter || isOfficerRole) {
+        // Officers see all SLA records
+        loadSla();
+      } else if (managerDept) {
+        // Managers see only their department's SLA records
+        loadSla({ department: managerDept });
+      }
+    } else {
+      // My SLA view - use dedicated endpoint that gets user from JWT
+      if (user?.id) {
+        setSlaLoading(true);
+        setLoadErr('');
+        SlaService.getMySla({ limit: 500 })
+          .then(r => {
+            const d = r?.data;
+            setSlaData(Array.isArray(d?.data) ? d.data : []);
+          })
+          .catch(() => setLoadErr('Failed to load SLA data. Please try again.'))
+          .finally(() => setSlaLoading(false));
+      }
+    }
+    
+    loadTickets();
+  }, [activeTab, managerDept, deptLoading, user?.id, user?.role, bypassDeptFilter, loadSla, loadTickets]);
 
   useEffect(() => {
     document.body.style.overflow = selected ? 'hidden' : '';
@@ -103,47 +134,17 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
   }, [selected]);
 
   const isLoading = slaLoading || ticketsLoading || deptLoading;
+  const isOfficer = user?.role?.toLowerCase() === 'officer';
 
   /* ── Filtered SLA sets ────────────────────────────────────────────────── */
-  // Use ticket_department from the backend response (avoids mismatches from
-  // a separate allTickets fetch with pagination limits).
-  // Officers see all SLA records, managers see only their department
-  const isOfficer = user?.role?.toLowerCase() === 'officer';
-  const deptSlaRecords = useMemo(() =>
-    (bypassDeptFilter || isOfficer)
-      ? slaData
-      : managerDept
-        ? slaData.filter(r =>
-            String(r.ticket_department || '').toUpperCase() === managerDept
-          )
-        : slaData,
-    [slaData, managerDept, bypassDeptFilter, isOfficer, user]
-  );
-
-  /* Build the set of ticket IDs where the logged-in manager is the assigned officer.
-     Ticket objects include assignment.officer.id / .email which the SLA endpoint does NOT return. */
-  const myTicketIds = useMemo(() => {
-    const ids = new Set();
-    allTickets.forEach(t => {
-      const officer = t.assignment?.officer;
-      if (!officer) return;
-      if (user?.id    && String(officer.id    || '') === String(user.id))                                ids.add(t.id);
-      else if (user?.email && String(officer.email || '').toLowerCase() === String(user.email).toLowerCase()) ids.add(t.id);
-    });
-    return ids;
-  }, [allTickets, user]);
-
-  const mySlaRecords = useMemo(() =>
-    slaData.filter(r => myTicketIds.has(r.ticket_id)),
-    [slaData, myTicketIds]
-  );
-
-  const viewRecords = activeTab === 'department' ? deptSlaRecords : mySlaRecords;
+  // Backend now handles filtering based on activeTab and user role
+  // So we can use slaData directly
+  const viewRecords = slaData;
 
   /* ── Per-officer overall SLA map (used for department tab extra column) ─ */
   const officerSlaMap = useMemo(() => {
     const map = {}; // key → { met, total }
-    deptSlaRecords.forEach(r => {
+    slaData.forEach(r => {
       const k = officerKey(r);
       if (!k) return;
       if (!map[k]) map[k] = { met: 0, total: 0 };
@@ -151,7 +152,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       if (r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla) map[k].met++;
     });
     return map;
-  }, [deptSlaRecords]);
+  }, [slaData]);
 
   /* ── Derived stats for performance card ─────────────────────────────── */
   const stats = useMemo(() => {
@@ -206,9 +207,11 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
           {!(bypassDeptFilter || isOfficer) && !deptLoading && managerDept && (
             <span className="mgr-tab-badge">{managerDept}</span>
           )}
-          <span style={{ marginLeft: 6, background: activeTab === 'department' ? '#3b82f6' : '#e5e7eb', color: activeTab === 'department' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
-            {deptSlaRecords.length}
-          </span>
+          {activeTab === 'department' && (
+            <span style={{ marginLeft: 6, background: '#3b82f6', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+              {slaData.length}
+            </span>
+          )}
         </button>
         <button
           className={`mgr-tab${activeTab === 'mine' ? ' active' : ''}`}
@@ -219,9 +222,11 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
           My SLA
-          <span style={{ marginLeft: 6, background: activeTab === 'mine' ? '#3b82f6' : '#e5e7eb', color: activeTab === 'mine' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
-            {mySlaRecords.length}
-          </span>
+          {activeTab === 'mine' && (
+            <span style={{ marginLeft: 6, background: '#3b82f6', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+              {slaData.length}
+            </span>
+          )}
         </button>
       </div>
 

@@ -103,13 +103,14 @@ const UserDashboard = () => {
 
   // ─── Load SLA data ───────────────────────────────────────────────────────────
   const loadSla = useCallback(() => {
+    if (!user?.id) return;
     setSlaLoading(true);
     setSlaError('');
-    SlaService.getAllSla({ limit: 100 })
+    SlaService.getAllSla({ limit: 100, user_id: user.id })
       .then(r => { const d = r?.data; setSlaData(Array.isArray(d?.data) ? d.data : []); })
       .catch(() => setSlaError('Failed to load SLA data. Please refresh.'))
       .finally(() => setSlaLoading(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => { loadSla(); }, [loadSla]);
 
