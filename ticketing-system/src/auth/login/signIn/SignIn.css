@@ -197,7 +197,7 @@ body.auth-page {
 }
 
 .logo {
-  height: 70px;
+  height: 110px;
   width: auto;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.08));
 }
@@ -552,7 +552,7 @@ input::placeholder {
   }
   
   .logo {
-    height: 60px;
+    height: 90px;
   }
   
   .logo-container {
@@ -623,7 +623,7 @@ input::placeholder {
   }
   
   .logo {
-    height: 50px;
+    height: 75px;
   }
   
   .logo-container {
@@ -794,7 +794,7 @@ input::placeholder {
 
   /* scale logo down on tablet */
   .logo {
-    height: 56px;
+    height: 85px;
   }
   
   .login-card-container {
@@ -876,6 +876,6 @@ input::placeholder {
 
   /* small screens: reduce logo size */
   .logo {
-    height: 40px;
+    height: 65px;
   }
 }
