@@ -210,7 +210,6 @@ const RolesConfiguration = () => {
 	const [fetchError, setFetchError] = useState('');
 	const [search, setSearch] = useState('');
 
-	const [openAdd, setOpenAdd] = useState(false);
 	const [editingRole, setEditingRole] = useState(null);
 	const [deletingRole, setDeletingRole] = useState(null);
 	const [toast, setToast] = useState(null);
@@ -234,11 +233,6 @@ const RolesConfiguration = () => {
 	useEffect(() => { fetchRoles(); }, []);
 
 	/* ── CRUD callbacks ── */
-	const onAdded = (role) => {
-		setRoles((prev) => [role, ...prev]);
-		showToast(`Role "${role.role}" created.`);
-	};
-
 	const onUpdated = (role) => {
 		setRoles((prev) => prev.map((r) => r.id === role.id ? role : r));
 		showToast(`Role "${role.role}" updated.`);
@@ -579,20 +573,14 @@ const RolesConfiguration = () => {
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 					/>
-					<button className="role-add-btn" onClick={() => setOpenAdd(true)}>
-						<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-							<path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/>
-						</svg>
-						Add Role
-					</button>
-				</div>
+			</div>
 
-				{fetchError && (
-					<div className="role-error-banner">
-						<span>{fetchError}</span>
-						<button onClick={fetchRoles}>Retry</button>
-					</div>
-				)}
+			{fetchError && (
+				<div className="role-error-banner">
+					<span>{fetchError}</span>
+					<button onClick={fetchRoles}>Retry</button>
+				</div>
+			)}
 
 				<div className="role-table-card">
 					<table className="role-table">
@@ -656,8 +644,6 @@ const RolesConfiguration = () => {
 					</div>
 				)}
 			</div>
-
-			{openAdd && <AddRoleModal onClose={() => setOpenAdd(false)} onAdded={onAdded} />}
 
 			{editingRole && (
 				<EditRoleModal

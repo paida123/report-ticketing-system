@@ -13,8 +13,8 @@ class UserService {
     }
 
   
-    getUsersByDepartment(departmentId) {
-        return apiUrl.get(`users/getByDepartment/${departmentId}`);
+    getUsersByDepartment(departmentId, params = {}) {
+        return apiUrl.get(`users/getByDepartment/${departmentId}`, { params });
     }
 
     createUser(data) {

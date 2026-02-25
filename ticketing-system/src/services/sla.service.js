@@ -7,8 +7,8 @@ class SlaService {
         return apiUrl.get("sla/getAll", { params });
     }
 
-    getMySla(params = {}) {
-        return apiUrl.get("sla/my-sla", { params });
+    getMySla(userId, params = {}) {
+        return apiUrl.get(`sla/get-by-user-id/${userId}`, { params });
     }
 
 }

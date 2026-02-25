@@ -4,8 +4,10 @@ import PageHeader from '../../components/PageHeader/PageHeader';
 import StatsCard, { StatsRow } from '../../components/StatsCard/StatsCard';
 import TicketService from '../../services/ticket.service';
 import TicketTypeService from '../../services/ticketType.service';
+import DepartmentService from '../../services/department.service';
 import UserService from '../../services/user.service';
 import SlaService from '../../services/sla.service';
+import CreateTicketModal from '../../components/CreateTicketModal/CreateTicketModal';
 import { useAuth } from '../../context/AuthContext';
 import '../admin.css';
 import './UserDashboard.css';
@@ -58,16 +60,11 @@ const UserDashboard = () => {
   const [closeTicketBusy, setCloseTicketBusy] = useState(false);
   const [closeTicketErr, setCloseTicketErr] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [activeTab, setActiveTab] = useState('assigned');
 
   // ─── Create ticket modal ─────────────────────────────────────────────────────
-  const [ctForm, setCtForm] = useState({ title: '', description: '', ticket_type_id: '', assigned_to: '' });
-  const [ctTouched, setCtTouched] = useState({});
-  const [ctBusy, setCtBusy] = useState(false);
-  const [ctErr, setCtErr] = useState('');
-  const [ctFocus, setCtFocus] = useState('');
+  const [departments, setDepartments] = useState([]);
   const [typesList, setTypesList] = useState([]);
-  const [officers, setOfficers] = useState([]);
-  const [officersLoading, setOfficersLoading] = useState(true);
 
   // ─── SLA data ────────────────────────────────────────────────────────────────
   const [slaData, setSlaData]       = useState([]);
@@ -90,6 +87,15 @@ const UserDashboard = () => {
   useEffect(() => { loadTickets(); }, [loadTickets]);
 
   // ─── Load ticket types ───────────────────────────────────────────────────────
+  useEffect(() => {
+    DepartmentService.getAllDepartments()
+      .then(r => {
+        const d = r?.data?.data;
+        setDepartments(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setDepartments([]));
+  }, []);
+
   const loadTypes = useCallback(() => {
     TicketTypeService.getAllTicketTypes({ limit: 100 })
       .then(r => {
@@ -114,17 +120,6 @@ const UserDashboard = () => {
 
   useEffect(() => { loadSla(); }, [loadSla]);
 
-  // ─── Load officers for optional assignment ───────────────────────────────────
-  useEffect(() => {
-    UserService.getAllUsers({ limit: 200 })
-      .then(r => {
-        const users = r?.data?.data?.users || r?.data?.data || [];
-        setOfficers(Array.isArray(users) ? users : []);
-      })
-      .catch(() => setOfficers([]))
-      .finally(() => setOfficersLoading(false));
-  }, []);
-
   // ─── Body scroll lock ────────────────────────────────────────────────────────
   useEffect(() => {
     const open = openCreate || kpiModalOpen || !!selected;
@@ -133,8 +128,28 @@ const UserDashboard = () => {
     return () => { document.body.classList.remove('modal-open'); document.body.style.overflow = ''; };
   }, [openCreate, kpiModalOpen, selected]);
 
+  const assignedToMeTickets = apiTickets.filter(t => {
+    if (!user) return false;
+    if (String(t.assignment?.assigned_to || '') === String(user.id || '')) return true;
+    const officer = t.assignment?.officer;
+    if (!officer) return false;
+    if (user.id && String(officer.id || '') === String(user.id)) return true;
+    if (user.email && String(officer.email || '').toLowerCase() === String(user.email).toLowerCase()) return true;
+    return false;
+  });
+
+  const createdByMeTickets = apiTickets.filter(t => {
+    if (!user?.id) return false;
+    if (typeof t.created_by === 'number' || typeof t.created_by === 'string') {
+      return String(t.created_by) === String(user.id);
+    }
+    return String(t.created_by?.id || '') === String(user.id);
+  });
+
+  const viewTickets = activeTab === 'assigned' ? assignedToMeTickets : createdByMeTickets;
+
   // ─── Derived groups using API statuses ──────────────────────────────────────
-  const byStatus   = (...ss) => apiTickets.filter(t => ss.includes(t.status));
+  const byStatus   = (...ss) => viewTickets.filter(t => ss.includes(t.status));
   const pending    = byStatus('PENDING_APPROVAL');
   const active     = byStatus('QUEUED', 'PROCESSING');
   const resolved   = byStatus('RESOLVED', 'CLOSED');
@@ -191,37 +206,12 @@ const UserDashboard = () => {
       return id.includes(q) || title.includes(q) || status.includes(q) || typeTitle.includes(q);
     });
 
-  // ─── Create ticket helpers ───────────────────────────────────────────────────
-  const ctSet   = (k, v) => { setCtForm(f => ({ ...f, [k]: v })); setCtTouched(t => ({ ...t, [k]: true })); };
-  const ctTouch = (k)    => setCtTouched(t => ({ ...t, [k]: true }));
-  const ctFieldErr = (k) => {
-    if (!ctTouched[k]) return '';
-    if (k === 'title'          && !ctForm.title.trim())       return 'Title is required.';
-    if (k === 'description'    && !ctForm.description.trim()) return 'Description is required.';
-    if (k === 'ticket_type_id' && !ctForm.ticket_type_id)     return 'Please select a ticket type.';
-    return '';
-  };
-
-  const submitCreateTicket = async () => {
-    setCtTouched({ title: true, description: true, ticket_type_id: true });
-    if (!ctForm.title.trim() || !ctForm.description.trim() || !ctForm.ticket_type_id) {
-      setCtErr('Please fill in all required fields.');
-      return;
-    }
-    setCtBusy(true); setCtErr('');
-    try {
-      const payload = { title: ctForm.title.trim(), description: ctForm.description.trim(), ticket_type_id: Number(ctForm.ticket_type_id) };
-      if (ctForm.assigned_to) payload.assigned_to = Number(ctForm.assigned_to);
-      await TicketService.createTicket(payload);
-      setCtForm({ title: '', description: '', ticket_type_id: '', assigned_to: '' });
-      setCtTouched({});
-      setOpenCreate(false);
-      setSuccessMsg('Ticket created successfully.');
-      setTimeout(() => setSuccessMsg(''), 4000);
-      loadTickets();
-    } catch (e) {
-      setCtErr(e?.response?.data?.message || 'Failed to create ticket. Please try again.');
-    } finally { setCtBusy(false); }
+  // ─── Create ticket handler ────────────────────────────────────────────────────
+  const handleTicketCreated = () => {
+    setOpenCreate(false);
+    setSuccessMsg('Ticket created successfully!');
+    setTimeout(() => setSuccessMsg(''), 3500);
+    loadTickets();
   };
 
   // ─── Close ticket ─────────────────────────────────────────────────────────────
@@ -267,14 +257,6 @@ const UserDashboard = () => {
   // ─── Skeleton rows while loading ──────────────────────────────────────────────
   const SkeletonRows = () => <>{[1,2,3].map(i => <div key={i} className="ts-skeleton" />)}</>;
 
-  // ─── Shared input style for create modal ──────────────────────────────────────
-  const inputStyle = (hasErr) => ({
-    width: '100%', padding: '10px 14px', borderRadius: 10,
-    border: `1.5px solid ${hasErr ? '#fca5a5' : '#e5e7eb'}`,
-    fontSize: 14, outline: 'none', background: hasErr ? '#fff7f7' : '#ffffff',
-    boxSizing: 'border-box', fontFamily: 'inherit', color: '#111827',
-  });
-
   // ─── Newest-3 helpers ────────────────────────────────────────────────────────
   const newest3 = (arr) => [...arr].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3);
 
@@ -282,9 +264,18 @@ const UserDashboard = () => {
     <>
       <PageHeader
         title="Dashboard"
-        subtitle="View your tickets and tasks at a glance"
+        subtitle={activeTab === 'assigned' ? 'View tickets assigned to you' : 'View tickets created by you'}
         actions={<button className="btn-primary" onClick={() => setOpenCreate(true)}>Create Ticket</button>}
       />
+
+      <div className="ud-tabs">
+        <button className={`ud-tab ${activeTab === 'assigned' ? 'active' : ''}`} onClick={() => setActiveTab('assigned')}>
+          Assigned To Me
+        </button>
+        <button className={`ud-tab ${activeTab === 'created' ? 'active' : ''}`} onClick={() => setActiveTab('created')}>
+          Created By Me
+        </button>
+      </div>
 
       {/* ── Success toast ── */}
       {successMsg && createPortal(
@@ -520,7 +511,7 @@ const UserDashboard = () => {
                       <div style={{ color: '#fff', fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em' }}>New Ticket</div>
                       <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 }}>Submit a new support request</div>
                     </div>
-                    <button onClick={() => { setOpenCreate(false); setCtForm({ title: '', description: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); }} disabled={ctBusy}
+                    <button onClick={() => { setOpenCreate(false); setCtForm({ title: '', description: '', department_id: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); }} disabled={ctBusy}
                       style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}
                       aria-label="Close">×</button>
                   </div>
@@ -560,14 +551,26 @@ const UserDashboard = () => {
                       {ctFieldErr('description') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('description')}</div>}
                     </div>
 
+                    {/* Department */}
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 7 }}>Department <span style={{ color: '#ef4444' }}>*</span></label>
+                      <select value={ctForm.department_id} onChange={e => ctSet('department_id', e.target.value)} onBlur={() => ctTouch('department_id')} onFocus={() => setCtFocus('department')} onBlurCapture={() => setCtFocus('')}
+                        style={{ ...inputStyle(!!ctFieldErr('department_id')), boxShadow: ctFocus === 'department' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none', borderColor: ctFocus === 'department' && !ctFieldErr('department_id') ? '#93c5fd' : ctFieldErr('department_id') ? '#fca5a5' : '#e5e7eb', cursor: 'pointer' }}
+                      >
+                        <option value="">— Select a department —</option>
+                        {departments.map(d => <option key={d.id} value={d.id}>{d.department}</option>)}
+                      </select>
+                      {ctFieldErr('department_id') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('department_id')}</div>}
+                    </div>
+
                     {/* Ticket Type */}
                     <div style={{ marginBottom: 20 }}>
                       <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 7 }}>Ticket Type <span style={{ color: '#ef4444' }}>*</span></label>
-                      <select value={ctForm.ticket_type_id} onChange={e => ctSet('ticket_type_id', e.target.value)} onBlur={() => ctTouch('ticket_type_id')} onFocus={() => setCtFocus('type')} onBlurCapture={() => setCtFocus('')}
+                      <select value={ctForm.ticket_type_id} onChange={e => ctSet('ticket_type_id', e.target.value)} onBlur={() => ctTouch('ticket_type_id')} onFocus={() => setCtFocus('type')} onBlurCapture={() => setCtFocus('')} disabled={!ctForm.department_id}
                         style={{ ...inputStyle(!!ctFieldErr('ticket_type_id')), boxShadow: ctFocus === 'type' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none', borderColor: ctFocus === 'type' && !ctFieldErr('ticket_type_id') ? '#93c5fd' : ctFieldErr('ticket_type_id') ? '#fca5a5' : '#e5e7eb', cursor: 'pointer' }}
                       >
-                        <option value="">— Select a ticket type —</option>
-                        {typesList.map(t => <option key={t.id} value={t.id}>{t.title}{t.approval_required ? ' (Requires Approval)' : ''}</option>)}
+                        <option value="">{ctForm.department_id ? '— Select a ticket type —' : '— Select department first —'}</option>
+                        {filteredTicketTypes.map(t => <option key={t.id} value={t.id}>{t.title}{t.approval_required ? ' (Requires Approval)' : ''}</option>)}
                       </select>
                       {ctFieldErr('ticket_type_id') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('ticket_type_id')}</div>}
                       {selectedType && (
@@ -597,12 +600,12 @@ const UserDashboard = () => {
                         <span>Assign To <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 12 }}>(optional)</span></span>
                         {ctForm.assigned_to && <button type="button" onClick={() => ctSet('assigned_to', '')} style={{ fontSize: 12, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear</button>}
                       </label>
-                      <select value={ctForm.assigned_to} onChange={e => ctSet('assigned_to', e.target.value)} onFocus={() => setCtFocus('assigned_to')} onBlurCapture={() => setCtFocus('')} disabled={officersLoading}
+                      <select value={ctForm.assigned_to} onChange={e => ctSet('assigned_to', e.target.value)} onFocus={() => setCtFocus('assigned_to')} onBlurCapture={() => setCtFocus('')} disabled={officersLoading || !ctForm.department_id}
                         style={{ ...inputStyle(false), boxShadow: ctFocus === 'assigned_to' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none', borderColor: ctFocus === 'assigned_to' ? '#93c5fd' : '#e5e7eb', cursor: 'pointer', color: ctForm.assigned_to ? '#111827' : '#9ca3af' }}
                       >
-                        <option value="">{officersLoading ? 'Loading officers…' : '— Auto-assign (recommended) —'}</option>
+                        <option value="">{!ctForm.department_id ? 'Select department first' : officersLoading ? 'Loading users…' : '— Auto-assign (recommended) —'}</option>
                         {officers.map(u => {
-                          const deptName = typeof u.department === 'string' ? u.department : u.department?.department;
+                          const deptName = typeof u.departments?.department === 'string' ? u.departments.department : (typeof u.department === 'string' ? u.department : u.department?.department);
                           return <option key={u.id} value={u.id}>{u.first_name} {u.last_name}{deptName ? ` · ${deptName}` : ''}</option>;
                         })}
                       </select>
@@ -617,7 +620,7 @@ const UserDashboard = () => {
                   <div style={{ padding: '16px 28px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: '#fafafa', borderBottomLeftRadius: 18, borderBottomRightRadius: 18 }}>
                     <span style={{ fontSize: 12, color: '#9ca3af' }}>Ctrl+Enter to submit</span>
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <button onClick={() => { setOpenCreate(false); setCtForm({ title: '', description: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); }} disabled={ctBusy}
+                      <button onClick={() => { setOpenCreate(false); setCtForm({ title: '', description: '', department_id: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); }} disabled={ctBusy}
                         style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: ctBusy ? 'not-allowed' : 'pointer', opacity: ctBusy ? 0.7 : 1 }}>Cancel</button>
                       <button onClick={submitCreateTicket} disabled={ctBusy}
                         style={{ padding: '9px 22px', borderRadius: 10, border: 'none', background: ctBusy ? '#93c5fd' : 'linear-gradient(135deg,#3b82f6,#6366f1)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: ctBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: ctBusy ? 'none' : '0 4px 14px rgba(99,102,241,0.35)' }}>
@@ -952,7 +955,7 @@ const UserDashboard = () => {
                         Ticket ID: #{selected.id}
                       </div>
                       <div style={{ display: 'flex', gap: 10 }}>
-                        {['PENDING_APPROVAL', 'QUEUED'].includes(selected.status) && (
+                        {['PENDING_APPROVAL', 'QUEUED'].includes(selected.status) && (String(selected.assignment?.assigned_to || '') === String(user?.id || '') || String(selected.assignment?.officer?.id || '') === String(user?.id || '')) && (
                           <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
                             style={{ 
                               padding: '11px 22px', 

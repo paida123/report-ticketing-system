@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import PageHeader from '../../components/PageHeader/PageHeader';
 import TicketService from '../../services/ticket.service';
 import TicketTypeService from '../../services/ticketType.service';
+import DepartmentService from '../../services/department.service';
 import UserService from '../../services/user.service';
 import TicketApprovalService from '../../services/ticketApproval.service';
 import { useAuth } from '../../context/AuthContext';
@@ -78,11 +79,12 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
 
   // Create ticket
   const [modalOpen, setModalOpen]           = useState(false);
-  const [ctForm, setCtForm]                 = useState({ title: '', description: '', ticket_type_id: '', assigned_to: '' });
+  const [ctForm, setCtForm]                 = useState({ title: '', description: '', department_id: '', ticket_type_id: '', assigned_to: '' });
   const [ctTouched, setCtTouched]           = useState({});
   const [ctBusy, setCtBusy]                 = useState(false);
   const [ctErr, setCtErr]                   = useState('');
   const [ctFocus, setCtFocus]               = useState('');
+  const [departments, setDepartments]       = useState([]);
   const [typesList, setTypesList]           = useState([]);
   const [officers, setOfficers]             = useState([]);
   const [officersLoading, setOfficersLoading] = useState(true);
@@ -123,11 +125,63 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   }, []);
 
   useEffect(() => {
-    UserService.getAllUsers({ limit: 200 })
-      .then(r => { const u = r?.data?.data?.users || r?.data?.data || []; setOfficers(Array.isArray(u) ? u : []); })
-      .catch(() => setOfficers([]))
-      .finally(() => setOfficersLoading(false));
+    DepartmentService.getAllDepartments()
+      .then(r => {
+        const d = r?.data?.data;
+        setDepartments(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setDepartments([]));
   }, []);
+
+  useEffect(() => {
+    if (!ctForm.department_id) {
+      setOfficers([]);
+      setOfficersLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setOfficersLoading(true);
+
+    const normalizeUsers = (response) => {
+      const data = response?.data?.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.users)) return data.users;
+      return [];
+    };
+
+    const matchesDepartment = (candidate) => {
+      const departmentId = candidate?.department_id || candidate?.departments?.id || candidate?.department?.id;
+      return String(departmentId || '') === String(ctForm.department_id || '');
+    };
+
+    const isOfficer = (candidate) => {
+      const roleName = String(candidate?.role?.role || candidate?.role?.role_name || candidate?.role_name || candidate?.role || '').toUpperCase();
+      return !roleName || roleName === 'OFFICER';
+    };
+
+    const loadOfficers = async () => {
+      try {
+        const byDepartment = await UserService.getUsersByDepartment(ctForm.department_id, { status: 'ACTIVE' });
+        let users = normalizeUsers(byDepartment);
+
+        if (!users.length) {
+          const allUsers = await UserService.getAllUsers({ limit: 300, status: 'ACTIVE' });
+          users = normalizeUsers(allUsers).filter(matchesDepartment);
+        }
+
+        const officersOnly = users.filter(isOfficer);
+        if (!cancelled) setOfficers(officersOnly.length ? officersOnly : users);
+      } catch {
+        if (!cancelled) setOfficers([]);
+      } finally {
+        if (!cancelled) setOfficersLoading(false);
+      }
+    };
+
+    loadOfficers();
+    return () => { cancelled = true; };
+  }, [ctForm.department_id]);
 
   // Scroll lock
   useEffect(() => {
@@ -180,20 +234,37 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   });
 
   // Create ticket helpers
-  const ctSet   = (k, v) => { setCtForm(f => ({ ...f, [k]: v })); setCtTouched(t => ({ ...t, [k]: true })); };
+  const ctSet   = (k, v) => {
+    setCtForm(f => {
+      if (k === 'department_id') {
+        return { ...f, department_id: v, ticket_type_id: '', assigned_to: '' };
+      }
+      if (k === 'ticket_type_id') {
+        return { ...f, ticket_type_id: v, assigned_to: '' };
+      }
+      return { ...f, [k]: v };
+    });
+    setCtTouched(t => ({ ...t, [k]: true }));
+  };
   const ctTouch = (k)    => setCtTouched(t => ({ ...t, [k]: true }));
   const ctFieldErr = (k) => {
     if (!ctTouched[k]) return '';
+    if (k === 'department_id'  && !ctForm.department_id)      return 'Please select a department.';
     if (k === 'title'          && !ctForm.title.trim())       return 'Title is required.';
     if (k === 'description'    && !ctForm.description.trim()) return 'Description is required.';
     if (k === 'ticket_type_id' && !ctForm.ticket_type_id)     return 'Please select a ticket type.';
     return '';
   };
-  const resetCreate = () => { setCtForm({ title: '', description: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); };
+  const filteredTicketTypes = typesList.filter(t => {
+    if (!ctForm.department_id) return false;
+    const typeDepartmentId = t.department_id || t.departments?.id || t.departmental?.id;
+    return String(typeDepartmentId || '') === String(ctForm.department_id);
+  });
+  const resetCreate = () => { setCtForm({ title: '', description: '', department_id: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); };
 
   const submitCreateTicket = async () => {
-    setCtTouched({ title: true, description: true, ticket_type_id: true });
-    if (!ctForm.title.trim() || !ctForm.description.trim() || !ctForm.ticket_type_id) { setCtErr('Please fill in all required fields.'); return; }
+    setCtTouched({ title: true, description: true, department_id: true, ticket_type_id: true });
+    if (!ctForm.title.trim() || !ctForm.description.trim() || !ctForm.department_id || !ctForm.ticket_type_id) { setCtErr('Please fill in all required fields.'); return; }
     setCtBusy(true); setCtErr('');
     try {
       const payload = { title: ctForm.title.trim(), description: ctForm.description.trim(), ticket_type_id: Number(ctForm.ticket_type_id) };
@@ -644,7 +715,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
       {/* Create Ticket Modal */}
       {modalOpen && createPortal(
         (() => {
-          const selectedType = typesList.find(t => String(t.id) === String(ctForm.ticket_type_id)) || null;
+          const selectedType = filteredTicketTypes.find(t => String(t.id) === String(ctForm.ticket_type_id)) || null;
           const descMax = 1000;
           return (
             <div
@@ -686,10 +757,19 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                     {ctFieldErr('description') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('description')}</div>}
                   </div>
                   <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 7 }}>Department <span style={{ color: '#ef4444' }}>*</span></label>
+                    <select value={ctForm.department_id} onChange={e => ctSet('department_id', e.target.value)} onBlur={() => ctTouch('department_id')} onFocus={() => setCtFocus('department')} onBlurCapture={() => setCtFocus('')}
+                      style={{ ...inputStyle(!!ctFieldErr('department_id')), cursor: 'pointer', boxShadow: ctFocus === 'department' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none' }}>
+                      <option value="">- Select a department -</option>
+                      {departments.map(d => <option key={d.id} value={d.id}>{d.department}</option>)}
+                    </select>
+                    {ctFieldErr('department_id') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('department_id')}</div>}
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 7 }}>Ticket Type <span style={{ color: '#ef4444' }}>*</span></label>
                     <select value={ctForm.ticket_type_id} onChange={e => ctSet('ticket_type_id', e.target.value)} onBlur={() => ctTouch('ticket_type_id')} style={{ ...inputStyle(!!ctFieldErr('ticket_type_id')), cursor: 'pointer' }}>
-                      <option value="">- Select a ticket type -</option>
-                      {typesList.map(t => <option key={t.id} value={t.id}>{t.title}{t.approval_required ? ' (Requires Approval)' : ''}</option>)}
+                      <option value="">{ctForm.department_id ? '- Select a ticket type -' : 'Select department first'}</option>
+                      {filteredTicketTypes.map(t => <option key={t.id} value={t.id}>{t.title}{t.approval_required ? ' (Requires Approval)' : ''}</option>)}
                     </select>
                     {ctFieldErr('ticket_type_id') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('ticket_type_id')}</div>}
                     {selectedType && (
@@ -715,9 +795,9 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                       <span>Assign To <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 12 }}>(optional)</span></span>
                       {ctForm.assigned_to && <button type="button" onClick={() => ctSet('assigned_to', '')} style={{ fontSize: 12, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear</button>}
                     </label>
-                    <select value={ctForm.assigned_to} onChange={e => ctSet('assigned_to', e.target.value)} disabled={officersLoading}
+                    <select value={ctForm.assigned_to} onChange={e => ctSet('assigned_to', e.target.value)} disabled={!ctForm.department_id || officersLoading}
                       style={{ ...inputStyle(false), cursor: 'pointer', color: ctForm.assigned_to ? '#111827' : '#9ca3af' }}>
-                      <option value="">{officersLoading ? 'Loading officers...' : '- Auto-assign (recommended) -'}</option>
+                      <option value="">{!ctForm.department_id ? 'Select department first' : officersLoading ? 'Loading officers...' : '- Auto-assign (recommended) -'}</option>
                       {officers.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
                     </select>
                   </div>

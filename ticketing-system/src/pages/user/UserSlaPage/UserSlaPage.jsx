@@ -39,7 +39,7 @@ const UserSlaPage = () => {
     if (!user?.id) return;
     setLoading(true);
     setLoadErr("");
-    SlaService.getMySla({ limit: 100 })
+    SlaService.getMySla(user.id, { limit: 100 })
       .then(r => {
         const d = r?.data;
         setSlaData(Array.isArray(d?.data) ? d.data : []);

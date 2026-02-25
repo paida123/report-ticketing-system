@@ -115,7 +115,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       if (user?.id) {
         setSlaLoading(true);
         setLoadErr('');
-        SlaService.getMySla({ limit: 500 })
+        SlaService.getMySla(user.id, { limit: 500 })
           .then(r => {
             const d = r?.data;
             setSlaData(Array.isArray(d?.data) ? d.data : []);

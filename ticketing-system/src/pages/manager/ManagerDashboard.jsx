@@ -4,9 +4,11 @@ import PageHeader from '../../components/PageHeader/PageHeader';
 import StatsCard, { StatsRow } from '../../components/StatsCard/StatsCard';
 import TicketService from '../../services/ticket.service';
 import TicketTypeService from '../../services/ticketType.service';
+import DepartmentService from '../../services/department.service';
 import UserService from '../../services/user.service';
 import SlaService from '../../services/sla.service';
 import TicketApprovalService from '../../services/ticketApproval.service';
+import CreateTicketModal from '../../components/CreateTicketModal/CreateTicketModal';
 import { useAuth } from '../../context/AuthContext';
 import '../admin.css';
 import '../user/UserDashboard.css';
@@ -47,13 +49,7 @@ const ManagerDashboard = () => {
   // Create-ticket modal
   const [openCreate, setOpenCreate]           = useState(false);
   const [typesList, setTypesList]             = useState([]);
-  const [officers, setOfficers]               = useState([]);
-  const [officersLoading, setOfficersLoading] = useState(true);
-  const [ctForm, setCtForm]                   = useState({ title: '', description: '', ticket_type_id: '', assigned_to: '' });
-  const [ctTouched, setCtTouched]             = useState({});
-  const [ctBusy, setCtBusy]                   = useState(false);
-  const [ctErr, setCtErr]                     = useState('');
-  const [ctFocus, setCtFocus]                 = useState('');
+  const [departments, setDepartments]         = useState([]);
 
   // View-ticket modal
   const [selected, setSelected]               = useState(null);
@@ -103,6 +99,14 @@ const ManagerDashboard = () => {
   useEffect(() => { loadTickets(); }, [loadTickets]);
   useEffect(() => { loadSla(); }, [loadSla]);
   useEffect(() => { loadTypes(); }, [loadTypes]);
+  useEffect(() => {
+    DepartmentService.getAllDepartments()
+      .then(r => {
+        const d = r?.data?.data;
+        setDepartments(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setDepartments([]));
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -110,13 +114,6 @@ const ManagerDashboard = () => {
       .then(r => setManagerProfile(r?.data?.data || r?.data || null))
       .catch(() => {});
   }, [user?.id]);
-
-  useEffect(() => {
-    UserService.getAllUsers({ limit: 200 })
-      .then(r => { const u = r?.data?.data?.users || r?.data?.data || []; setOfficers(Array.isArray(u) ? u : []); })
-      .catch(() => setOfficers([]))
-      .finally(() => setOfficersLoading(false));
-  }, []);
 
   // ── Scroll lock ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -172,32 +169,12 @@ const ManagerDashboard = () => {
   const closeKpiModal = ()    => { setKpiModalOpen(false); setKpiModalKey(null); };
   const modalDef = KPI_DEFS.find(k => k.key === kpiModalKey) || { label: 'Details', items: [] };
 
-  // ── Create-ticket helpers ─────────────────────────────────────────────────────
-  const ctSet   = (k, v) => { setCtForm(f => ({ ...f, [k]: v })); setCtTouched(t => ({ ...t, [k]: true })); };
-  const ctTouch = (k)    => setCtTouched(t => ({ ...t, [k]: true }));
-  const ctFieldErr = (k) => {
-    if (!ctTouched[k]) return '';
-    if (k === 'title'          && !ctForm.title.trim())       return 'Title is required.';
-    if (k === 'description'    && !ctForm.description.trim()) return 'Description is required.';
-    if (k === 'ticket_type_id' && !ctForm.ticket_type_id)     return 'Please select a ticket type.';
-    return '';
-  };
-  const resetCreate = () => { setCtForm({ title: '', description: '', ticket_type_id: '', assigned_to: '' }); setCtTouched({}); setCtErr(''); };
-
-  const submitCreateTicket = async () => {
-    setCtTouched({ title: true, description: true, ticket_type_id: true });
-    if (!ctForm.title.trim() || !ctForm.description.trim() || !ctForm.ticket_type_id) { setCtErr('Please fill in all required fields.'); return; }
-    setCtBusy(true); setCtErr('');
-    try {
-      const payload = { title: ctForm.title.trim(), description: ctForm.description.trim(), ticket_type_id: Number(ctForm.ticket_type_id) };
-      if (ctForm.assigned_to) payload.assigned_to = Number(ctForm.assigned_to);
-      await TicketService.createTicket(payload);
-      resetCreate(); setOpenCreate(false);
-      setSuccessMsg('Ticket created successfully.');
-      setTimeout(() => setSuccessMsg(''), 4000);
-      loadTickets();
-    } catch (e) { setCtErr(e?.response?.data?.message || 'Failed to create ticket.'); }
-    finally { setCtBusy(false); }
+  // ── Create-ticket handler ─────────────────────────────────────────────────────
+  const handleTicketCreated = () => {
+    setOpenCreate(false);
+    setSuccessMsg('Ticket created successfully.');
+    setTimeout(() => setSuccessMsg(''), 4000);
+    loadTickets();
   };
 
   // ── Close ticket ──────────────────────────────────────────────────────────────
@@ -268,13 +245,6 @@ const ManagerDashboard = () => {
 
   const SkeletonRows = () => <>{[1, 2, 3].map(i => <div key={i} className="ts-skeleton" />)}</>;
 
-  const inputStyle = (hasErr) => ({
-    width: '100%', padding: '10px 14px', borderRadius: 10,
-    border: `1.5px solid ${hasErr ? '#fca5a5' : '#e5e7eb'}`,
-    fontSize: 14, outline: 'none', background: hasErr ? '#fff7f7' : '#fff',
-    boxSizing: 'border-box', fontFamily: 'inherit', color: '#111827',
-  });
-
   // ── SLA calcs ─────────────────────────────────────────────────────────────────
   const slaTotal    = slaData.length;
   const slaMet      = slaData.filter(r => r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla).length;
@@ -290,7 +260,7 @@ const ManagerDashboard = () => {
       <PageHeader
         title="Manager Dashboard"
         subtitle={`${activeTab === 'department' ? (isOfficer ? 'All' : (managerDept ? `${managerDept} Department` : 'Department')) : 'My'} tickets at a glance`}
-        actions={<button className="btn-primary" onClick={() => { resetCreate(); setOpenCreate(true); }}>Create Ticket</button>}
+        actions={<button className="btn-primary" onClick={() => setOpenCreate(true)}>Create Ticket</button>}
       />
 
       {/* Toast */}
@@ -491,112 +461,13 @@ const ManagerDashboard = () => {
       )}
 
       {/* Create Ticket Modal */}
-      {openCreate && createPortal(
-        (() => {
-          const selectedType = typesList.find(t => String(t.id) === String(ctForm.ticket_type_id)) || null;
-          const descMax = 1000;
-          return (
-            <div role="dialog" aria-modal="true"
-              style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, background: 'rgba(2,6,23,0.45)', backdropFilter: 'blur(3px)' }}
-              onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitCreateTicket(); }}
-            >
-              <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 560, boxShadow: '0 32px 64px rgba(2,6,23,0.22)', display: 'flex', flexDirection: 'column', maxHeight: '92vh', overflow: 'hidden' }}>
-                <div style={{ background: 'linear-gradient(135deg,#3b82f6 0%,#6366f1 100%)', padding: '22px 28px', display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="white" strokeWidth="1.8"/><path d="M3 9h18" stroke="white" strokeWidth="1.6" strokeLinecap="round"/><path d="M7 13h5M7 16h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: '#fff', fontWeight: 800, fontSize: 18 }}>New Ticket</div>
-                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 }}>Submit a new support request</div>
-                  </div>
-                  <button onClick={() => { setOpenCreate(false); resetCreate(); }} disabled={ctBusy}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}
-                    aria-label="Close">×</button>
-                </div>
-                <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }}>
-                  {ctErr && (
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 10, padding: '11px 14px', marginBottom: 20, fontSize: 13, color: '#b91c1c' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/></svg>
-                      {ctErr}
-                    </div>
-                  )}
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 7 }}>
-                      <span>Title <span style={{ color: '#ef4444' }}>*</span></span>
-                      {ctForm.title && <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 12 }}>{ctForm.title.length} chars</span>}
-                    </label>
-                    <input value={ctForm.title} onChange={e => ctSet('title', e.target.value)} onBlur={() => ctTouch('title')} onFocus={() => setCtFocus('title')} onBlurCapture={() => setCtFocus('')}
-                      placeholder="Brief, descriptive title" maxLength={200}
-                      style={{ ...inputStyle(!!ctFieldErr('title')), boxShadow: ctFocus === 'title' ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none' }}
-                    />
-                    {ctFieldErr('title') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('title')}</div>}
-                  </div>
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 7 }}>
-                      <span>Description <span style={{ color: '#ef4444' }}>*</span></span>
-                      <span style={{ fontWeight: 400, color: ctForm.description.length > descMax * 0.9 ? '#f59e0b' : '#9ca3af', fontSize: 12 }}>{ctForm.description.length} / {descMax}</span>
-                    </label>
-                    <textarea value={ctForm.description} onChange={e => ctSet('description', e.target.value)} onBlur={() => ctTouch('description')} onFocus={() => setCtFocus('description')} onBlurCapture={() => setCtFocus('')}
-                      rows={5} maxLength={descMax} placeholder="Describe the issue in detail…"
-                      style={{ ...inputStyle(!!ctFieldErr('description')), resize: 'vertical', lineHeight: 1.65 }}
-                    />
-                    {ctFieldErr('description') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('description')}</div>}
-                  </div>
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 7 }}>Ticket Type <span style={{ color: '#ef4444' }}>*</span></label>
-                    <select value={ctForm.ticket_type_id} onChange={e => ctSet('ticket_type_id', e.target.value)} onBlur={() => ctTouch('ticket_type_id')} onFocus={() => setCtFocus('type')} onBlurCapture={() => setCtFocus('')}
-                      style={{ ...inputStyle(!!ctFieldErr('ticket_type_id')), cursor: 'pointer' }}>
-                      <option value="">— Select a ticket type —</option>
-                      {typesList.map(t => <option key={t.id} value={t.id}>{t.title}{t.approval_required ? ' (Requires Approval)' : ''}</option>)}
-                    </select>
-                    {ctFieldErr('ticket_type_id') && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5 }}>{ctFieldErr('ticket_type_id')}</div>}
-                    {selectedType && (
-                      <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'linear-gradient(135deg,#eff6ff,#eef2ff)', border: '1.5px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, color: '#1e40af', fontSize: 13 }}>{selectedType.title}</div>
-                          <div style={{ color: '#4b5563', fontSize: 12, marginTop: 3 }}>
-                            {selectedType.approval_required
-                              ? <span style={{ color: '#92400e' }}>Requires <strong>{selectedType.approval_count}</strong> approval{selectedType.approval_count !== 1 ? 's' : ''}</span>
-                              : <span style={{ color: '#065f46' }}>No approval needed</span>}
-                          </div>
-                        </div>
-                        {selectedType.expected_sla_duration && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#dbeafe', color: '#1d4ed8', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                            {selectedType.expected_sla_duration}h SLA
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-                      <span>Assign To <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 12 }}>(optional)</span></span>
-                      {ctForm.assigned_to && <button type="button" onClick={() => ctSet('assigned_to', '')} style={{ fontSize: 12, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear</button>}
-                    </label>
-                    <select value={ctForm.assigned_to} onChange={e => ctSet('assigned_to', e.target.value)} disabled={officersLoading}
-                      style={{ ...inputStyle(false), cursor: 'pointer', color: ctForm.assigned_to ? '#111827' : '#9ca3af' }}>
-                      <option value="">{officersLoading ? 'Loading officers…' : '— Auto-assign (recommended) —'}</option>
-                      {officers.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ padding: '16px 28px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: '#fafafa', borderBottomLeftRadius: 18, borderBottomRightRadius: 18 }}>
-                  <span style={{ fontSize: 12, color: '#9ca3af' }}>Ctrl+Enter to submit</span>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => { setOpenCreate(false); resetCreate(); }} disabled={ctBusy}
-                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: ctBusy ? 'not-allowed' : 'pointer', opacity: ctBusy ? 0.7 : 1 }}>Cancel</button>
-                    <button onClick={submitCreateTicket} disabled={ctBusy}
-                      style={{ padding: '9px 22px', borderRadius: 10, border: 'none', background: ctBusy ? '#93c5fd' : 'linear-gradient(135deg,#3b82f6,#6366f1)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: ctBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: ctBusy ? 'none' : '0 4px 14px rgba(99,102,241,0.35)' }}>
-                      {ctBusy && <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
-                      {ctBusy ? 'Submitting…' : 'Submit Ticket'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })(), document.body
+      {openCreate && (
+        <CreateTicketModal
+          typesList={typesList}
+          departments={departments}
+          onClose={() => setOpenCreate(false)}
+          onCreated={handleTicketCreated}
+        />
       )}
 
       {/* View Ticket Modal */}
