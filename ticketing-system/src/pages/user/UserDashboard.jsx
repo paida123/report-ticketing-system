@@ -9,6 +9,7 @@ import UserService from '../../services/user.service';
 import SlaService from '../../services/sla.service';
 import CreateTicketModal from '../../components/CreateTicketModal/CreateTicketModal';
 import { useAuth } from '../../context/AuthContext';
+import ApprovalStepper from '../../components/ApprovalStepper/ApprovalStepper';
 import '../admin.css';
 import './UserDashboard.css';
 
@@ -936,6 +937,13 @@ const UserDashboard = () => {
                           )}
                         </div>
                       </div>
+
+                      {/* Approval Progress Stepper */}
+                      {selected.ticket_type?.approval_required && (
+                        <div style={{ marginTop: 16 }}>
+                          <ApprovalStepper ticketId={selected.id} />
+                        </div>
+                      )}
 
                       {/* Close error */}
                       {closeTicketErr && (

@@ -8,8 +8,10 @@ import DepartmentService from '../../services/department.service';
 import UserService from '../../services/user.service';
 import SlaService from '../../services/sla.service';
 import TicketApprovalService from '../../services/ticketApproval.service';
+import AssignmentService from '../../services/assignment.service';
 import CreateTicketModal from '../../components/CreateTicketModal/CreateTicketModal';
 import { useAuth } from '../../context/AuthContext';
+import ApprovalStepper from '../../components/ApprovalStepper/ApprovalStepper';
 import '../admin.css';
 import '../user/UserDashboard.css';
 import './ManagerDashboard.css';
@@ -63,6 +65,14 @@ const ManagerDashboard = () => {
   const [declineReason, setDeclineReason]     = useState('');
   const [declineBusy, setDeclineBusy]         = useState(false);
   const [declineErr, setDeclineErr]           = useState('');
+
+  // Reassign ticket
+  const [reassignOpen, setReassignOpen]       = useState(false);
+  const [reassignOfficer, setReassignOfficer] = useState('');
+  const [reassignBusy, setReassignBusy]       = useState(false);
+  const [reassignErr, setReassignErr]         = useState('');
+  const [officers, setOfficers]               = useState([]);
+  const [officersLoading, setOfficersLoading] = useState(false);
 
   // KPI modal
   const [kpiModalOpen, setKpiModalOpen]       = useState(false);
@@ -122,6 +132,58 @@ const ManagerDashboard = () => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.classList.remove('modal-open'); document.body.style.overflow = ''; };
   }, [openCreate, kpiModalOpen, selected]);
+
+  // Load officers when a QUEUED ticket is selected for potential reassignment
+  useEffect(() => {
+    if (!selected || selected.status !== 'QUEUED') {
+      return;
+    }
+
+    const ticketDeptId = selected.ticket_type?.department_id || selected.department_id;
+    if (!ticketDeptId) return;
+
+    let cancelled = false;
+    setOfficersLoading(true);
+
+    const normalizeUsers = (response) => {
+      const data = response?.data?.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.users)) return data.users;
+      return [];
+    };
+
+    const matchesDepartment = (candidate) => {
+      const departmentId = candidate?.department_id || candidate?.departments?.id || candidate?.department?.id;
+      return String(departmentId || '') === String(ticketDeptId || '');
+    };
+
+    const isOfficer = (candidate) => {
+      const roleName = String(candidate?.role?.role || candidate?.role?.role_name || candidate?.role_name || candidate?.role || '').toUpperCase();
+      return !roleName || roleName === 'OFFICER';
+    };
+
+    const loadOfficers = async () => {
+      try {
+        const byDepartment = await UserService.getUsersByDepartment(ticketDeptId, { status: 'ACTIVE' });
+        let users = normalizeUsers(byDepartment);
+
+        if (!users.length) {
+          const allUsers = await UserService.getAllUsers({ limit: 300, status: 'ACTIVE' });
+          users = normalizeUsers(allUsers).filter(matchesDepartment);
+        }
+
+        const officersOnly = users.filter(isOfficer);
+        if (!cancelled) setOfficers(officersOnly.length ? officersOnly : users);
+      } catch {
+        if (!cancelled) setOfficers([]);
+      } finally {
+        if (!cancelled) setOfficersLoading(false);
+      }
+    };
+
+    loadOfficers();
+    return () => { cancelled = true; };
+  }, [selected]);
 
   // ── Derived data ─────────────────────────────────────────────────────────────
   const managerDept =
@@ -216,6 +278,20 @@ const ManagerDashboard = () => {
       loadTickets();
     } catch (e) { setDeclineErr(e?.response?.data?.message || 'Failed to decline ticket.'); }
     finally { setDeclineBusy(false); }
+  };
+
+  // ── Reassign ticket ──────────────────────────────────────────────────────────
+  const handleReassignConfirm = async (ticketId) => {
+    if (!reassignOfficer) { setReassignErr('Please select an officer.'); return; }
+    setReassignBusy(true); setReassignErr('');
+    try {
+      await AssignmentService.reassignTicket(ticketId, reassignOfficer);
+      setReassignOpen(false); setReassignOfficer(''); setSelected(null);
+      setSuccessMsg('Ticket reassigned successfully.');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      loadTickets();
+    } catch (e) { setReassignErr(e?.response?.data?.message || 'Failed to reassign ticket.'); }
+    finally { setReassignBusy(false); }
   };
 
   // ── Shared sub-components ─────────────────────────────────────────────────────
@@ -482,6 +558,7 @@ const ManagerDashboard = () => {
               const m = statusMeta(selected.status);
               const creatorInitials = (selected.created_by?.name || 'U').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
               const isPending = selected.status === 'PENDING_APPROVAL';
+              const canReassign = selected.status === 'QUEUED' && !selected.locked;
               return (
                 <>
                   <div style={{ background: `linear-gradient(135deg,${m.color}18 0%,${m.color}08 100%)`, borderBottom: `2px solid ${m.color}25`, padding: '20px 24px', display: 'flex', alignItems: 'flex-start', gap: 14, flexShrink: 0 }}>
@@ -534,9 +611,16 @@ const ManagerDashboard = () => {
                       ))}
                     </div>
 
-                    {(approveErr || closeTicketErr || declineErr) && (
+                    {/* Approval Progress Stepper */}
+                    {selected.ticket_type?.approval_required && (
+                      <div style={{ marginTop: 16 }}>
+                        <ApprovalStepper ticketId={selected.id} />
+                      </div>
+                    )}
+
+                    {(approveErr || closeTicketErr || declineErr || reassignErr) && (
                       <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 10, padding: '10px 14px', color: '#b91c1c', fontSize: 13, marginTop: 14 }}>
-                        {approveErr || closeTicketErr || declineErr}
+                        {approveErr || closeTicketErr || declineErr || reassignErr}
                       </div>
                     )}
 
@@ -554,10 +638,56 @@ const ManagerDashboard = () => {
                         {declineErr && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{declineErr}</div>}
                       </div>
                     )}
+
+                    {canReassign && reassignOpen && (
+                      <div style={{ marginTop: 14 }}>
+                        <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 7 }}>Reassign to <span style={{ color: '#ef4444' }}>*</span></label>
+                        <select
+                          value={reassignOfficer}
+                          onChange={e => { setReassignOfficer(e.target.value); setReassignErr(''); }}
+                          style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', cursor: 'pointer' }}
+                          autoFocus
+                        >
+                          <option value="">Select an officer...</option>
+                          {officers.filter(o => String(o.id) !== String(selected.assignment?.officer?.id)).map(o => (
+                            <option key={o.id} value={o.id}>{o.name} ({o.email})</option>
+                          ))}
+                        </select>
+                        {reassignErr && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{reassignErr}</div>}
+                        {officers.length === 0 && <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>No other officers available in this department</div>}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ padding: '14px 24px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0, background: '#fafafa', borderBottomLeftRadius: 18, borderBottomRightRadius: 18 }}>
-                    {isPending && !declineOpen && (
+                    {canReassign && !reassignOpen && (
+                      <button
+                        onClick={() => { setReassignOpen(true); setReassignErr(''); setReassignOfficer(''); }}
+                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                      >
+                        Reassign
+                      </button>
+                    )}
+                    {canReassign && reassignOpen && (
+                      <>
+                        <button
+                          onClick={() => { setReassignOpen(false); setReassignOfficer(''); setReassignErr(''); }}
+                          disabled={reassignBusy}
+                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleReassignConfirm(selected.id)}
+                          disabled={reassignBusy || !reassignOfficer}
+                          style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: (reassignBusy || !reassignOfficer) ? '#93c5fd' : 'linear-gradient(135deg,#3b82f6,#2563eb)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: (reassignBusy || !reassignOfficer) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          {reassignBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                          {reassignBusy ? 'Reassigning…' : 'Confirm Reassign'}
+                        </button>
+                      </>
+                    )}
+                    {isPending && !declineOpen && !reassignOpen && (
                       <>
                         <button onClick={() => { setDeclineOpen(true); setDeclineErr(''); setDeclineReason(''); }} disabled={approveBusy}
                           style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
@@ -570,7 +700,7 @@ const ManagerDashboard = () => {
                         </button>
                       </>
                     )}
-                    {isPending && declineOpen && (
+                    {isPending && declineOpen && !reassignOpen && (
                       <>
                         <button onClick={() => { setDeclineOpen(false); setDeclineReason(''); setDeclineErr(''); }} disabled={declineBusy}
                           style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
@@ -583,14 +713,14 @@ const ManagerDashboard = () => {
                         </button>
                       </>
                     )}
-                    {['QUEUED', 'PROCESSING'].includes(selected.status) && selected.assignment?.officer?.id === user?.id && (
+                    {['QUEUED', 'PROCESSING'].includes(selected.status) && selected.assignment?.officer?.id === user?.id && !reassignOpen && (
                       <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
                         style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: closeTicketBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: closeTicketBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                         {closeTicketBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
                         {closeTicketBusy ? 'Closing…' : 'Close Ticket'}
                       </button>
                     )}
-                    <button onClick={() => { setSelected(null); setDeclineOpen(false); setDeclineReason(''); }}
+                    <button onClick={() => { setSelected(null); setDeclineOpen(false); setDeclineReason(''); setReassignOpen(false); setReassignOfficer(''); }}
                       style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
                       Dismiss
                     </button>

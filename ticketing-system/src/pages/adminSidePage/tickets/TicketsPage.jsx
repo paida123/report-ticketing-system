@@ -7,6 +7,7 @@ import RoleService from '../../../services/role.service';
 import TicketService from '../../../services/ticket.service';
 import UserService from '../../../services/user.service';
 import CreateTicketModal from '../../../components/CreateTicketModal/CreateTicketModal';
+import ApprovalStepper from '../../../components/ApprovalStepper/ApprovalStepper';
 import './TicketsPage.css';
 
 /* -- Toast ----------------------------------------------------------------- */
@@ -484,6 +485,13 @@ const ViewTicketModal = ({ ticket, onClose, onClosed }) => {
               </div>
             </div>
           </div>
+
+          {/* Approval Progress Stepper */}
+          {ticket.ticket_type?.approval_required && (
+            <div style={{ marginTop: 16 }}>
+              <ApprovalStepper ticketId={ticket.id} />
+            </div>
+          )}
         </div>
 
         {/* Footer */}

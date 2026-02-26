@@ -6,7 +6,9 @@ import TicketService from "../../../services/ticket.service";
 import TicketTypeService from "../../../services/ticketType.service";
 import DepartmentService from "../../../services/department.service";
 import UserService from "../../../services/user.service";
+import AssignmentService from "../../../services/assignment.service";
 import { useAuth } from "../../../context/AuthContext";
+import ApprovalStepper from "../../../components/ApprovalStepper/ApprovalStepper";
 import "../../admin.css";
 import "./UserTicketsPage.css";
 
@@ -45,13 +47,19 @@ const UserTicketsPage = () => {
   /*  Modals  */
   const [modalOpen, setModalOpen]       = useState(false);
   const [selected, setSelected]         = useState(null);
-  const [closeTicketBusy, setCloseTicketBusy] = useState(false);
-  const [closeTicketErr, setCloseTicketErr]   = useState("");
+  const [resolveBusy, setResolveBusy]   = useState(false);
+  const [resolveErr, setResolveErr]     = useState("");
+  const [rejectOpen, setRejectOpen]     = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectBusy, setRejectBusy]     = useState(false);
+  const [rejectErr, setRejectErr]       = useState("");
+  const [rejectMode, setRejectMode]     = useState("reject"); // "reject" or "not-resolved"
 
   /*  Table controls  */
   const [query, setQuery]               = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [activeTab, setActiveTab]       = useState("assigned");
+  const [acceptBusy, setAcceptBusy]     = useState(null);
 
   /*  Create ticket modal  */
   const [ctForm, setCtForm]             = useState({ title: "", description: "", department_id: "", ticket_type_id: "", assigned_to: "" });
@@ -64,19 +72,39 @@ const UserTicketsPage = () => {
   const [officers, setOfficers]         = useState([]);
   const [officersLoading, setOfficersLoading] = useState(true);
 
-  /*  Load tickets  */
-  const loadTickets = useCallback(() => {
+  /*  Load tickets based on active tab  */
+  const loadTickets = useCallback((tab) => {
+    if (!user?.id) return;
+    
     setLoading(true); setLoadErr("");
-    TicketService.getAllTickets({ limit: 200 })
+    
+    // Build params based on tab - backend will handle filtering
+    const params = { limit: 200 };
+    
+    // Pass view parameter to backend
+    if (tab === "assigned") {
+      params.view = "assigned";
+    } else if (tab === "created") {
+      params.view = "created";
+    } else if (tab === "department") {
+      params.view = "department";
+    }
+    
+    TicketService.getAllTickets(params)
       .then(r => {
         const d = r?.data?.data;
-        setTickets(Array.isArray(d?.tickets) ? d.tickets : []);
+        const ticketsData = Array.isArray(d?.tickets) ? d.tickets : [];
+        setTickets(ticketsData);
       })
       .catch(() => setLoadErr("Failed to load tickets. Please try again."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
-  useEffect(() => { loadTickets(); }, [loadTickets]);
+  useEffect(() => { 
+    if (user) {
+      loadTickets(activeTab); 
+    }
+  }, [activeTab, loadTickets, user]);
 
   /*  Load ticket types  */
   useEffect(() => {
@@ -157,18 +185,63 @@ const UserTicketsPage = () => {
     return () => { document.body.style.overflow = ""; };
   }, [modalOpen, selected]);
 
-  /*  Close ticket  */
-  const handleCloseTicket = async (id) => {
-    setCloseTicketBusy(true); setCloseTicketErr("");
+  /*  Resolve ticket  */
+  const handleResolveTicket = async (id) => {
+    setResolveBusy(true); setResolveErr("");
     try {
-      await TicketService.closeTicket(id);
+      await AssignmentService.resolveTicket(id);
       setSelected(null);
-      setSuccessMsg("Ticket closed successfully.");
+      setSuccessMsg("Ticket resolved successfully.");
       setTimeout(() => setSuccessMsg(""), 4000);
-      loadTickets();
+      loadTickets(activeTab);
     } catch (e) {
-      setCloseTicketErr(e?.response?.data?.message || "Failed to close ticket.");
-    } finally { setCloseTicketBusy(false); }
+      setResolveErr(e?.response?.data?.message || "Failed to resolve ticket.");
+    } finally { setResolveBusy(false); }
+  };
+
+  /*  Accept ticket (lock and assign to self)  */
+  const handleAcceptTicket = async (ticketId) => {
+    setAcceptBusy(ticketId);
+    try {
+      await AssignmentService.lockTicket(ticketId);
+      setSuccessMsg("Ticket accepted and assigned to you.");
+      setTimeout(() => setSuccessMsg(""), 4000);
+      loadTickets(activeTab);
+    } catch (e) {
+      const msg = e?.response?.data?.message || "Failed to accept ticket.";
+      setLoadErr(msg);
+      setTimeout(() => setLoadErr(""), 5000);
+    } finally {
+      setAcceptBusy(null);
+    }
+  };
+
+  /*  Reject ticket  */
+  const handleRejectConfirm = async () => {
+    if (!rejectReason.trim()) {
+      setRejectErr("Please provide a reason for rejection");
+      return;
+    }
+    setRejectBusy(true); setRejectErr("");
+    try {
+      if (rejectMode === "not-resolved") {
+        await AssignmentService.markAsNotResolved(selected.id, rejectReason);
+        setSuccessMsg("Ticket marked as not resolved");
+      } else {
+        await AssignmentService.rejectTicket(selected.id, rejectReason);
+        setSuccessMsg("Ticket rejected successfully.");
+      }
+      setRejectOpen(false);
+      setRejectReason("");
+      setRejectMode("reject");
+      setSelected(null);
+      setTimeout(() => setSuccessMsg(""), 4000);
+      loadTickets(activeTab);
+    } catch (e) {
+      setRejectErr(e?.response?.data?.message || "Failed to reject ticket.");
+    } finally {
+      setRejectBusy(false);
+    }
   };
 
   /*  Create ticket helpers  */
@@ -215,31 +288,18 @@ const UserTicketsPage = () => {
       setModalOpen(false);
       setSuccessMsg("Ticket created successfully.");
       setTimeout(() => setSuccessMsg(""), 4000);
-      loadTickets();
+      loadTickets(activeTab);
     } catch (e) {
       setCtErr(e?.response?.data?.message || "Failed to create ticket. Please try again.");
     } finally { setCtBusy(false); }
   };
 
-  const assignedTickets = tickets.filter(t => {
-    if (!user) return false;
-    if (String(t.assignment?.assigned_to || "") === String(user.id || "")) return true;
-    const officer = t.assignment?.officer;
-    if (!officer) return false;
-    if (user.id && String(officer.id || "") === String(user.id)) return true;
-    if (user.email && String(officer.email || "").toLowerCase() === String(user.email).toLowerCase()) return true;
-    return false;
-  });
-
-  const createdByMeTickets = tickets.filter(t => {
-    if (!user?.id) return false;
-    if (typeof t.created_by === "number" || typeof t.created_by === "string") {
-      return String(t.created_by) === String(user.id);
-    }
-    return String(t.created_by?.id || "") === String(user.id);
-  });
-
-  const viewTickets = activeTab === "assigned" ? assignedTickets : createdByMeTickets;
+  /*  Tickets are already filtered by backend based on view parameter  */
+  const viewTickets = React.useMemo(() => {
+    // Backend already filtered tickets based on the view parameter
+    // No additional client-side filtering needed for tab separation
+    return tickets;
+  }, [tickets]);
 
   /*  Derived counts  */
   const count = (...ss) => viewTickets.filter(t => ss.includes(t.status)).length;
@@ -269,7 +329,13 @@ const UserTicketsPage = () => {
     <>
       <PageHeader
         title="My Tickets"
-        subtitle={activeTab === "assigned" ? "View and manage tickets assigned to you" : "View and manage tickets you created"}
+        subtitle={
+          activeTab === "assigned" 
+            ? "View and manage tickets assigned to you" 
+            : activeTab === "created"
+            ? "View and manage tickets you created"
+            : "View and accept available tickets in your department"
+        }
         actions={<button className="btn-primary" onClick={() => setModalOpen(true)}>+ Create Ticket</button>}
       />
 
@@ -288,6 +354,9 @@ const UserTicketsPage = () => {
         </button>
         <button className={`utp-tab ${activeTab === "created" ? "active" : ""}`} onClick={() => setActiveTab("created")}>
           Created By Me
+        </button>
+        <button className={`utp-tab ${activeTab === "department" ? "active" : ""}`} onClick={() => setActiveTab("department")}>
+          Department
         </button>
       </div>
 
@@ -333,6 +402,9 @@ const UserTicketsPage = () => {
                 <th className="col-id">Ticket ID</th>
                 <th className="col-title">Title</th>
                 <th className="col-type">Type</th>
+                {activeTab === "department" && <th className="col-type">Assigned To</th>}
+                {activeTab === "assigned" && <th className="col-type">Previously Assigned To</th>}
+                {activeTab !== "department" && <th className="col-type">Resolved By</th>}
                 <th className="col-status">Status</th>
                 <th className="col-date">Created</th>
                 <th className="col-actions">Actions</th>
@@ -341,7 +413,7 @@ const UserTicketsPage = () => {
             <tbody>
               {loading && [1,2,3,4,5].map(i => (
                 <tr key={i} className="utp-skeleton-row">
-                  <td colSpan={6}><div className="utp-skeleton" /></td>
+                  <td colSpan={7}><div className="utp-skeleton" /></td>
                 </tr>
               ))}
 
@@ -349,7 +421,7 @@ const UserTicketsPage = () => {
                 const m = statusMeta(t.status);
                 const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" }) : "";
                 return (
-                  <tr key={t.id} className="utp-row" onClick={() => { setCloseTicketErr(""); setSelected(t); }} tabIndex={0} onKeyDown={e => { if (e.key === "Enter") { setCloseTicketErr(""); setSelected(t); } }}>
+                  <tr key={t.id} className="utp-row" onClick={() => { setResolveErr(""); setSelected(t); }} tabIndex={0} onKeyDown={e => { if (e.key === "Enter") { setResolveErr(""); setSelected(t); } }}>
                     <td className="col-id">
                       <code className="ticket-id-pill" title={t.id}>{t.id}</code>
                     </td>
@@ -359,14 +431,156 @@ const UserTicketsPage = () => {
                     <td className="col-type">
                       <span className="ticket-type-pill">{t.ticket_type?.title || ""}</span>
                     </td>
+                    {activeTab === "department" ? (
+                      <td className="col-type">
+                        {t.assignment?.officer ? (
+                          <span style={{ fontSize: "12px", color: "#6b7280" }}>
+                            {t.assignment.officer.name || `${t.assignment.officer.first_name || ''} ${t.assignment.officer.last_name || ''}`.trim() || 'Unknown'}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>Unassigned</span>
+                        )}
+                      </td>
+                    ) : null}
+                    {activeTab === "assigned" && (
+                      <td className="col-type">
+                        {t.assignment?.previous_officer ? (
+                          <span style={{ fontSize: "12px", color: "#6366f1", fontWeight: 500 }}>
+                            {`${t.assignment.previous_officer.first_name || ''} ${t.assignment.previous_officer.last_name || ''}`.trim() || 'Unknown'}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>No one</span>
+                        )}
+                      </td>
+                    )}
+                    {activeTab !== "department" && (
+                      <td className="col-type">
+                        {t.assignment?.resolver && ["RESOLVED", "CLOSED"].includes(t.status) ? (
+                          <span style={{ fontSize: "12px", color: "#16a34a", fontWeight: 500 }}>
+                            {`${t.assignment.resolver.first_name || ''} ${t.assignment.resolver.last_name || ''}`.trim() || 'Unknown'}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="col-status">
                       <span className={`chip ${m.cls}`}>{m.label}</span>
                     </td>
                     <td className="col-date">{dateStr}</td>
                     <td className="col-actions" onClick={e => e.stopPropagation()}>
-                      <button className="icon-btn" onClick={() => { setCloseTicketErr(""); setSelected(t); }} aria-label="View ticket" title="View details">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
-                      </button>
+                      {activeTab === "department" ? (
+                        <>
+                          {t.locked && String(t.assignment?.assigned_to) !== String(user.id) ? (
+                            <span style={{ fontSize: "12px", color: "#f59e0b", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <rect x="5" y="11" width="14" height="10" rx="2" stroke="#f59e0b" strokeWidth="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                              Locked
+                            </span>
+                          ) : t.assignment?.assigned_to && String(t.assignment.assigned_to) === String(user.id) ? (
+                            <span style={{ fontSize: "12px", color: "#10b981", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="9" stroke="#10b981" strokeWidth="2"/>
+                                <path d="M8 12l3 3 5-5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              Assigned to you
+                            </span>
+                          ) : (
+                            <button 
+                              className="btn-primary" 
+                              onClick={() => handleAcceptTicket(t.id)} 
+                              disabled={acceptBusy === t.id || t.locked}
+                              style={{ padding: "6px 14px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", opacity: t.locked ? 0.5 : 1 }}
+                              title={t.locked ? "This ticket is currently locked" : t.assignment?.assigned_to ? "Take this ticket from current assignee" : "Accept this ticket"}
+                            >
+                              {acceptBusy === t.id ? (
+                                <>
+                                  <div style={{ width:12, height:12, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
+                                  Accepting...
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Accept
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </>
+                      ) : activeTab === "assigned" ? (
+                        <>
+                          {/* For assigned tickets: show Accept button for QUEUED, Accepted status + Resolve button for PROCESSING */}
+                          {t.status === "QUEUED" && String(t.assignment?.assigned_to) === String(user.id) ? (
+                            <button 
+                              className="btn-primary" 
+                              onClick={() => handleAcceptTicket(t.id)} 
+                              disabled={acceptBusy === t.id}
+                              style={{ padding: "6px 14px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}
+                              title="Accept this ticket to start working on it"
+                            >
+                              {acceptBusy === t.id ? (
+                                <>
+                                  <div style={{ width:12, height:12, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
+                                  Accepting...
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  Accept
+                                </>
+                              )}
+                            </button>
+                          ) : t.status === "PROCESSING" && String(t.assignment?.assigned_to) === String(user.id) ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "flex-start" }}>
+                              <span style={{ fontSize: "12px", color: "#10b981", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="9" stroke="#10b981" strokeWidth="2"/>
+                                  <path d="M8 12l3 3 5-5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Accepted
+                              </span>
+                              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                <button 
+                                  onClick={() => handleResolveTicket(t.id)} 
+                                  disabled={resolveBusy}
+                                  style={{ padding: "5px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", borderRadius: 6, border: "none", background: resolveBusy ? "#86efac" : "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontWeight: 600, cursor: resolveBusy ? "not-allowed" : "pointer", boxShadow: resolveBusy ? "none" : "0 2px 8px rgba(16,185,129,0.3)" }}
+                                  title="Mark ticket as resolved"
+                                >
+                                  {resolveBusy ? (
+                                    <>
+                                      <div style={{ width:11, height:11, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
+                                      Resolving...
+                                    </>
+                                  ) : (
+                                    "Resolve"
+                                  )}
+                                </button>
+                                <button 
+                                onClick={(e) => { e.stopPropagation(); setSelected(t); setRejectMode("not-resolved"); setRejectOpen(true); }} 
+                                  style={{ padding: "5px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", borderRadius: 6, border: "1.5px solid #f59e0b", background: "#fff", color: "#f59e0b", fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 6px rgba(245,158,11,0.2)" }}
+                                  title="Mark ticket as not resolved"
+                                >
+                                  Not Resolved
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button className="icon-btn" onClick={() => { setResolveErr(""); setSelected(t); }} aria-label="View ticket" title="View details">
+                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <button className="icon-btn" onClick={() => { setResolveErr(""); setSelected(t); }} aria-label="View ticket" title="View details">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -374,10 +588,16 @@ const UserTicketsPage = () => {
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <div className="utp-empty">
                       <svg width="38" height="38" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="#cbd5e1" strokeWidth="1.4"/><path d="M3 9h18" stroke="#cbd5e1" strokeWidth="1.3" strokeLinecap="round"/></svg>
-                      <div>{query || statusFilter !== "All" ? "No tickets match your filter." : "No tickets yet. Create your first one!"}</div>
+                      <div>
+                        {query || statusFilter !== "All" 
+                          ? "No tickets match your filter." 
+                          : activeTab === "department"
+                          ? "No available tickets in your department."
+                          : "No tickets yet. Create your first one!"}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -627,32 +847,141 @@ const UserTicketsPage = () => {
                           <span style={{ color:"#9ca3af", fontSize:13 }}>Not yet assigned</span>
                         )}
                       </div>
-                    </div>
 
-                    {/* Close ticket error */}
-                    {closeTicketErr && (
+                      {/* Previously Assigned To */}
+                      <div style={{ background:"#f5f3ff", border:"1px solid #ddd6fe", borderRadius:12, padding:"14px 16px" }}>
+                        <div style={{ fontSize:11, fontWeight:700, color:"#6366f1", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Previously Assigned To</div>
+                        {selected.assignment?.previous_officer ? (
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,#8b5cf6,#6366f1)", color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                              {`${selected.assignment.previous_officer.first_name?.[0] || ''}${selected.assignment.previous_officer.last_name?.[0] || ''}`.toUpperCase() || 'P'}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight:600, color:"#111827", fontSize:13 }}>
+                                {selected.assignment.previous_officer.first_name} {selected.assignment.previous_officer.last_name}
+                              </div>
+                              <div style={{ fontSize:11, color:"#6366f1" }}>{selected.assignment.previous_officer.email}</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color:"#9ca3af", fontSize:13, fontStyle:"italic" }}>No one</span>
+                        )}
+                      </div>
+
+                      {/* Resolved By */}
+                      {["RESOLVED", "CLOSED"].includes(selected.status) && (
+                        <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"14px 16px" }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:"#16a34a", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Resolved By</div>
+                          {selected.assignment?.resolver ? (
+                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                              <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,#22c55e,#16a34a)", color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                                {`${selected.assignment.resolver.first_name?.[0] || ''}${selected.assignment.resolver.last_name?.[0] || ''}`.toUpperCase() || 'R'}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight:600, color:"#111827", fontSize:13 }}>
+                                  {selected.assignment.resolver.first_name} {selected.assignment.resolver.last_name}
+                                </div>
+                                <div style={{ fontSize:11, color:"#16a34a" }}>{selected.assignment.resolver.email}</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ color:"#9ca3af", fontSize:13 }}>Unknown</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {/* Approval Progress Stepper */}
+                    {selected.ticket_type?.approval_required && (
+                      <div style={{ marginTop: 16 }}>
+                        <ApprovalStepper ticketId={selected.id} />
+                      </div>
+                    )}
+                    {/* Resolve ticket error */}
+                    {resolveErr && (
                       <div style={{ marginTop:16, display:"flex", gap:8, background:"#fef2f2", border:"1.5px solid #fecaca", borderRadius:10, padding:"11px 14px", fontSize:13, color:"#b91c1c" }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/></svg>
-                        {closeTicketErr}
+                        {resolveErr}
                       </div>
                     )}
                   </div>
 
                   {/* Footer */}
                   <div style={{ padding:"16px 28px", borderTop:"1px solid #f1f5f9", display:"flex", justifyContent:"flex-end", gap:10, flexShrink:0, background:"#fafafa", borderBottomLeftRadius:18, borderBottomRightRadius:18 }}>
-                    {["PENDING_APPROVAL","QUEUED"].includes(selected.status) && (String(selected.assignment?.assigned_to || "") === String(user?.id || "") || String(selected.assignment?.officer?.id || "") === String(user?.id || "")) && (
-                      <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
-                        style={{ padding:"9px 20px", borderRadius:10, border:"none", background:closeTicketBusy?"#fca5a5":"linear-gradient(135deg,#ef4444,#dc2626)", color:"#fff", fontWeight:700, fontSize:14, cursor:closeTicketBusy?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:8 }}>
-                        {closeTicketBusy && <div style={{ width:13, height:13, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />}
-                        {closeTicketBusy?"Closing":"Close Ticket"}
+                    {/* Resolve button for PROCESSING tickets assigned to current user */}
+                    {selected.status === "PROCESSING" && (String(selected.assignment?.assigned_to || "") === String(user?.id || "") || String(selected.assignment?.officer?.id || "") === String(user?.id || "")) && (
+                      <button onClick={() => handleResolveTicket(selected.id)} disabled={resolveBusy}
+                        style={{ padding:"9px 20px", borderRadius:10, border:"none", background:resolveBusy?"#86efac":"linear-gradient(135deg,#10b981,#059669)", color:"#fff", fontWeight:700, fontSize:14, cursor:resolveBusy?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:8, boxShadow:resolveBusy?"none":"0 4px 14px rgba(16,185,129,0.35)" }}>
+                        {resolveBusy && <div style={{ width:13, height:13, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />}
+                        {resolveBusy?"Resolving":"Mark as Resolved"}
                       </button>
                     )}
+
+                    {/* Reject button for QUEUED or PROCESSING tickets assigned to current user */}
+                    {["QUEUED", "PROCESSING"].includes(selected.status) && (String(selected.assignment?.assigned_to || "") === String(user?.id || "") || String(selected.assignment?.officer?.id || "") === String(user?.id || "")) && (
+                      <button onClick={() => { setRejectMode("reject"); setRejectOpen(true); }}
+                        style={{ padding:"9px 20px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#ef4444,#dc2626)", color:"#fff", fontWeight:700, fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", gap:8, boxShadow:"0 4px 14px rgba(239,68,68,0.35)" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                        </svg>
+                        Reject
+                      </button>
+                    )}
+
                     <button onClick={() => setSelected(null)}
                       style={{ padding:"9px 18px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#fff", color:"#374151", fontWeight:600, fontSize:14, cursor:"pointer" }}>Dismiss</button>
                   </div>
                 </>
               );
             })()}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* REJECT TICKET MODAL */}
+      {rejectOpen && createPortal(
+        <div role="dialog" aria-modal="true"
+          style={{ position:"fixed", top:0, left:260, right:0, bottom:0, display:"flex", alignItems:"center", justifyContent:"center", zIndex:80, background:"rgba(2,6,23,0.55)", backdropFilter:"blur(4px)" }}
+          onClick={() => { setRejectOpen(false); setRejectReason(""); setRejectErr(""); setRejectMode("reject"); }}
+        >
+          <div style={{ background:"#fff", borderRadius:16, width:"100%", maxWidth:480, boxShadow:"0 24px 60px rgba(2,6,23,0.35)" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ padding:"22px 26px", borderBottom:"1px solid #f1f5f9" }}>
+              <div style={{ fontSize:18, fontWeight:700, color:"#111827" }}>
+                {rejectMode === "not-resolved" ? "Mark as Not Resolved" : "Reject Ticket"}
+              </div>
+              <div style={{ fontSize:13, color:"#6b7280", marginTop:4 }}>
+                {rejectMode === "not-resolved" 
+                  ? "This will mark the ticket as rejected. Explain why the issue could not be resolved."
+                  : "Please provide a reason for rejecting this ticket"}
+              </div>
+            </div>
+            <div style={{ padding:"22px 26px" }}>
+              <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:8 }}>Reason for Rejection *</label>
+              <textarea
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                placeholder="Explain why you are rejecting this ticket..."
+                style={{ width:"100%", minHeight:120, padding:"10px 14px", borderRadius:10, border:"1.5px solid #e5e7eb", fontSize:14, outline:"none", background:"#fff", boxSizing:"border-box", fontFamily:"inherit", color:"#111827", resize:"vertical" }}
+              />
+              {rejectErr && (
+                <div style={{ marginTop:12, display:"flex", gap:8, background:"#fef2f2", border:"1.5px solid #fecaca", borderRadius:10, padding:"11px 14px", fontSize:13, color:"#b91c1c" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/></svg>
+                  {rejectErr}
+                </div>
+              )}
+            </div>
+            <div style={{ padding:"16px 26px", borderTop:"1px solid #f1f5f9", display:"flex", justifyContent:"flex-end", gap:10, background:"#fafafa", borderBottomLeftRadius:16, borderBottomRightRadius:16 }}>
+              <button onClick={() => { setRejectOpen(false); setRejectReason(""); setRejectErr(""); setRejectMode("reject"); }}
+                style={{ padding:"9px 18px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#fff", color:"#374151", fontWeight:600, fontSize:14, cursor:"pointer" }}>
+                Cancel
+              </button>
+              <button onClick={handleRejectConfirm} disabled={rejectBusy}
+                style={{ padding:"9px 20px", borderRadius:10, border:"none", background:rejectBusy?"#fca5a5":"linear-gradient(135deg,#ef4444,#dc2626)", color:"#fff", fontWeight:700, fontSize:14, cursor:rejectBusy?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:8 }}>
+                {rejectBusy && <div style={{ width:13, height:13, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />}
+                {rejectBusy ? "Processing..." : rejectMode === "not-resolved" ? "Confirm" : "Confirm Rejection"}
+              </button>
+            </div>
           </div>
         </div>,
         document.body

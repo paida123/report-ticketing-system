@@ -6,7 +6,9 @@ import TicketTypeService from '../../services/ticketType.service';
 import DepartmentService from '../../services/department.service';
 import UserService from '../../services/user.service';
 import TicketApprovalService from '../../services/ticketApproval.service';
+import AssignmentService from '../../services/assignment.service';
 import { useAuth } from '../../context/AuthContext';
+import ApprovalStepper from '../../components/ApprovalStepper/ApprovalStepper';
 import '../admin.css';
 import '../user/UserTicketPage/UserTicketsPage.css';
 import './ManagerDashboard.css';
@@ -76,6 +78,12 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const [declineReason, setDeclineReason]   = useState('');
   const [declineBusy, setDeclineBusy]       = useState(false);
   const [declineErr, setDeclineErr]         = useState('');
+
+  // Reassign ticket
+  const [reassignOpen, setReassignOpen]     = useState(false);
+  const [reassignOfficer, setReassignOfficer] = useState('');
+  const [reassignBusy, setReassignBusy]     = useState(false);
+  const [reassignErr, setReassignErr]       = useState('');
 
   // Create ticket
   const [modalOpen, setModalOpen]           = useState(false);
@@ -191,6 +199,58 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
     return () => { document.body.classList.remove('modal-open'); document.body.style.overflow = ''; };
   }, [modalOpen, selected]);
 
+  // Load officers when a QUEUED ticket is selected for potential reassignment
+  useEffect(() => {
+    if (!selected || selected.status !== 'QUEUED') {
+      return;
+    }
+
+    const ticketDeptId = selected.ticket_type?.department_id || selected.department_id;
+    if (!ticketDeptId) return;
+
+    let cancelled = false;
+    setOfficersLoading(true);
+
+    const normalizeUsers = (response) => {
+      const data = response?.data?.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.users)) return data.users;
+      return [];
+    };
+
+    const matchesDepartment = (candidate) => {
+      const departmentId = candidate?.department_id || candidate?.departments?.id || candidate?.department?.id;
+      return String(departmentId || '') === String(ticketDeptId || '');
+    };
+
+    const isOfficer = (candidate) => {
+      const roleName = String(candidate?.role?.role || candidate?.role?.role_name || candidate?.role_name || candidate?.role || '').toUpperCase();
+      return !roleName || roleName === 'OFFICER';
+    };
+
+    const loadOfficers = async () => {
+      try {
+        const byDepartment = await UserService.getUsersByDepartment(ticketDeptId, { status: 'ACTIVE' });
+        let users = normalizeUsers(byDepartment);
+
+        if (!users.length) {
+          const allUsers = await UserService.getAllUsers({ limit: 300, status: 'ACTIVE' });
+          users = normalizeUsers(allUsers).filter(matchesDepartment);
+        }
+
+        const officersOnly = users.filter(isOfficer);
+        if (!cancelled) setOfficers(officersOnly.length ? officersOnly : users);
+      } catch {
+        if (!cancelled) setOfficers([]);
+      } finally {
+        if (!cancelled) setOfficersLoading(false);
+      }
+    };
+
+    loadOfficers();
+    return () => { cancelled = true; };
+  }, [selected]);
+
   // Derived: split by tab
   // Officers see all tickets in department tab, managers see only their department
   const isOfficer = user?.role?.toLowerCase() === 'officer';
@@ -279,7 +339,17 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   };
 
   // Actions
-  const closeModal = () => { setSelected(null); setDeclineOpen(false); setDeclineReason(''); setCloseTicketErr(''); setApproveErr(''); setDeclineErr(''); };
+  const closeModal = () => { 
+    setSelected(null); 
+    setDeclineOpen(false); 
+    setDeclineReason(''); 
+    setCloseTicketErr(''); 
+    setApproveErr(''); 
+    setDeclineErr('');
+    setReassignOpen(false);
+    setReassignOfficer('');
+    setReassignErr('');
+  };
 
   const handleCloseTicket = async (id) => {
     setCloseTicketBusy(true); setCloseTicketErr('');
@@ -311,6 +381,17 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
       setTimeout(() => setSuccessMsg(''), 4000); loadTickets();
     } catch (e) { setDeclineErr(e?.response?.data?.message || 'Failed to decline ticket.'); }
     finally { setDeclineBusy(false); }
+  };
+
+  const handleReassignConfirm = async (id) => {
+    if (!reassignOfficer) { setReassignErr('Please select an officer.'); return; }
+    setReassignBusy(true); setReassignErr('');
+    try {
+      await AssignmentService.reassignTicket(id, reassignOfficer);
+      closeModal(); setSuccessMsg('Ticket reassigned successfully.');
+      setTimeout(() => setSuccessMsg(''), 4000); loadTickets();
+    } catch (e) { setReassignErr(e?.response?.data?.message || 'Failed to reassign ticket.'); }
+    finally { setReassignBusy(false); }
   };
 
   const isDataLoading = loading || deptLoading;
@@ -553,6 +634,10 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
 
               // Close Ticket is available if the ticket is active and assigned to the logged-in user
               const canClose = isActive && selected.assignment?.officer?.id === user?.id;
+              
+              // Reassign is available for QUEUED tickets that are not locked
+              const canReassign = selected.status === 'QUEUED' && !selected.locked;
+              
               return (
                 <>
                   {/* Modal header */}
@@ -614,6 +699,13 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                       ))}
                     </div>
 
+                    {/* Approval Progress Stepper */}
+                    {selected.ticket_type?.approval_required && (
+                      <div style={{ marginTop: 16 }}>
+                        <ApprovalStepper ticketId={selected.id} />
+                      </div>
+                    )}
+
                     {/* Rejection reason */}
                     {selected.status === 'REJECTED' && selected.rejection_reason && (
                       <div style={{ marginTop: 14, background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 11, padding: '13px 15px' }}>
@@ -623,9 +715,9 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                     )}
 
                     {/* Error banners */}
-                    {(approveErr || closeTicketErr || declineErr) && (
+                    {(approveErr || closeTicketErr || declineErr || reassignErr) && (
                       <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 11, padding: '11px 15px', color: '#b91c1c', fontSize: 13, marginTop: 16 }}>
-                        {approveErr || closeTicketErr || declineErr}
+                        {approveErr || closeTicketErr || declineErr || reassignErr}
                       </div>
                     )}
 
@@ -646,11 +738,60 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         {declineErr && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5, fontWeight: 600 }}>{declineErr}</div>}
                       </div>
                     )}
+
+                    {/* Reassign dropdown */}
+                    {canReassign && reassignOpen && (
+                      <div style={{ marginTop: 16 }}>
+                        <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 7 }}>
+                          Reassign to <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          value={reassignOfficer}
+                          onChange={e => { setReassignOfficer(e.target.value); setReassignErr(''); }}
+                          style={{ width: '100%', padding: '11px 14px', borderRadius: 11, border: '1.5px solid #e5e7eb', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff', cursor: 'pointer' }}
+                          autoFocus
+                        >
+                          <option value="">Select an officer...</option>
+                          {officers.filter(o => String(o.id) !== String(selected.assignment?.officer?.id)).map(o => (
+                            <option key={o.id} value={o.id}>{o.name} ({o.email})</option>
+                          ))}
+                        </select>
+                        {reassignErr && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 5, fontWeight: 600 }}>{reassignErr}</div>}
+                        {officers.length === 0 && <div style={{ color: '#64748b', fontSize: 12, marginTop: 5 }}>No other officers available in this department</div>}
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer actions */}
                   <div style={{ padding: '15px 26px', borderTop: '1.5px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0, background: '#fafafa', borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
-                    {isMineToApprove && !declineOpen && (
+                    {canReassign && !reassignOpen && (
+                      <button
+                        onClick={() => { setReassignOpen(true); setReassignErr(''); setReassignOfficer(''); }}
+                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                      >
+                        Reassign
+                      </button>
+                    )}
+                    {canReassign && reassignOpen && (
+                      <>
+                        <button
+                          onClick={() => { setReassignOpen(false); setReassignOfficer(''); setReassignErr(''); }}
+                          disabled={reassignBusy}
+                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleReassignConfirm(selected.id)}
+                          disabled={reassignBusy || !reassignOfficer}
+                          style={{ padding: '9px 22px', borderRadius: 10, border: 'none', background: (reassignBusy || !reassignOfficer) ? '#93c5fd' : 'linear-gradient(135deg,#3b82f6,#2563eb)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: (reassignBusy || !reassignOfficer) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          {reassignBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                          {reassignBusy ? 'Reassigning...' : 'Confirm Reassign'}
+                        </button>
+                      </>
+                    )}
+                    {isMineToApprove && !declineOpen && !reassignOpen && (
                       <>
                         <button
                           onClick={() => { setDeclineOpen(true); setDeclineErr(''); setDeclineReason(''); }}
@@ -669,7 +810,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         </button>
                       </>
                     )}
-                    {isMineToApprove && declineOpen && (
+                    {isMineToApprove && declineOpen && !reassignOpen && (
                       <>
                         <button
                           onClick={() => { setDeclineOpen(false); setDeclineReason(''); setDeclineErr(''); }}
@@ -688,7 +829,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         </button>
                       </>
                     )}
-                    {canClose && (
+                    {canClose && !reassignOpen && (
                       <button
                         onClick={() => handleCloseTicket(selected.id)}
                         disabled={closeTicketBusy}

@@ -1,0 +1,233 @@
+.approval-stepper-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.approval-stepper-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.approval-stepper-container {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.approval-stepper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.approval-stepper-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.approval-stepper-badge {
+  padding: 4px 12px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.approval-stepper-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.approval-step-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.approval-step {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.approval-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.approval-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.approval-step.approved .approval-step-circle {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 2px solid #10b981;
+  color: white;
+}
+
+.approval-step.rejected .approval-step-circle {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 2px solid #ef4444;
+  color: white;
+}
+
+.approval-step.pending .approval-step-circle {
+  background: white;
+  border: 2px solid #cbd5e1;
+  color: #64748b;
+}
+
+.approval-step-line {
+  width: 2px;
+  flex: 1;
+  background: #e2e8f0;
+  margin: 4px 0;
+  min-height: 24px;
+}
+
+.approval-step.approved .approval-step-line {
+  background: #10b981;
+}
+
+.approval-step.rejected .approval-step-line {
+  background: #ef4444;
+}
+
+.approval-step-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.approval-step-role {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.role-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.department-badge {
+  padding: 2px 8px;
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.approval-step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.approval-step-info > span:first-of-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.approved-info {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.rejected-info {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.pending-info {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.approval-time {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: 18px;
+}
+
+.rejection-comment {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.rejection-comment strong {
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.step-number {
+  font-weight: 700;
+  font-size: 13px;
+}
