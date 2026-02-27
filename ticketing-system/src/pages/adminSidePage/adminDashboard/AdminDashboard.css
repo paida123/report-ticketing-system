@@ -229,6 +229,44 @@
   margin-top: 2px;
 }
 
+/* View More Button */
+.view-more-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(236,72,153,0.05));
+  border: 2px solid rgba(59,130,246,0.15);
+  border-radius: 12px;
+  color: var(--accent-1);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.view-more-btn:hover {
+  background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(236,72,153,0.08));
+  border-color: var(--accent-1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59,130,246,0.2);
+}
+
+.view-more-btn:active {
+  transform: translateY(0);
+}
+
+.view-more-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.view-more-btn:hover svg {
+  transform: translateY(2px);
+}
+
 /* Bottom */
 .bottom-grid {
   display: grid;

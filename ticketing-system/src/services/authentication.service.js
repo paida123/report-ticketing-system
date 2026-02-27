@@ -43,6 +43,21 @@ class AuthenticationService {
         return apiUrl.post("tickets/auth/mfa-recovery", { code });
     }
 
+    verifyTempPassword(email, tempPassword) {
+        return apiPublic.post("tickets/auth/verify-temp-password", { 
+            email, 
+            tempPassword 
+        });
+    }
+
+    setupPassword(email, tempPassword, newPassword) {
+        return apiPublic.post("tickets/auth/setup-password", { 
+            email, 
+            tempPassword, 
+            newPassword 
+        });
+    }
+
 }
 
 export default new AuthenticationService();

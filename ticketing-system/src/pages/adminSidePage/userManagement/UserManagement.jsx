@@ -67,9 +67,27 @@ const AddUserModal = ({ onClose, onAdded }) => {
 		if (!first_name || !last_name || !email || !phone_number || !role_id || !department_id) {
 			setError('All fields are required.'); return;
 		}
+		
+		// Find role and department names from IDs
+		const selectedRole = roles.find(r => r.id === parseInt(role_id));
+		const selectedDepartment = departments.find(d => d.id === parseInt(department_id));
+		
+		if (!selectedRole || !selectedDepartment) {
+			setError('Invalid role or department selection.'); return;
+		}
+		
 		setSaving(true); setError('');
 		try {
-			const res = await UserService.createUser({ first_name: first_name.trim(), last_name: last_name.trim(), email: email.trim(), phone_number: phone_number.trim(), role_id: parseInt(role_id), department_id: parseInt(department_id), temp_password: genPassword() });
+			const payload = {
+				first_name: first_name.trim(),
+				last_name: last_name.trim(),
+				email: email.trim(),
+				phone_number: phone_number.trim(),
+				role: selectedRole.role,
+				department: selectedDepartment.department,
+				mfa_required: false
+			};
+			const res = await UserService.adminCreateUser(payload);
 			onAdded(res.data.data);
 			onClose();
 		} catch (err) {

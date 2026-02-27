@@ -15,6 +15,9 @@ const AdminDashboard = () => {
   const [selectedKpi, setSelectedKpi] = useState(null);
   const [modalPage, setModalPage] = useState(1);
   const [modalPageSize, setModalPageSize] = useState(10);
+  const [showPerformersModal, setShowPerformersModal] = useState(false);
+  const [performersPage, setPerformersPage] = useState(1);
+  const [performersPageSize, setPerformersPageSize] = useState(10);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -48,7 +51,7 @@ const AdminDashboard = () => {
 
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (showModal) {
+    if (showModal || showPerformersModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -56,7 +59,7 @@ const AdminDashboard = () => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [showModal]);
+  }, [showModal, showPerformersModal]);
 
   // Calculate KPIs from real data
   const activeUsers = users.filter((u) => u.status === "ACTIVE").length;
@@ -297,15 +300,16 @@ const AdminDashboard = () => {
     }
   });
 
-  const agents = Object.entries(agentStats)
+  const allAgents = Object.entries(agentStats)
     .map(([name, stats]) => ({ 
       name, 
       avgSla: Math.round(stats.totalSla / stats.count),
       tickets: stats.count,
       excellentRate: Math.round((stats.excellentCount / stats.count) * 100)
     }))
-    .sort((a, b) => b.avgSla - a.avgSla)
-    .slice(0, 5);
+    .sort((a, b) => b.avgSla - a.avgSla);
+
+  const topAgents = allAgents.slice(0, 3);
 
   // Department overview from tickets
   const deptStats = {};
@@ -549,24 +553,40 @@ const AdminDashboard = () => {
             </div>
 
             <div className="panel top-performers-card">
-              <h3>🏆 Top Performers</h3>
+              <h3>🏆 Top 3 Performers</h3>
               <p className="panel-subtitle">Officers with highest SLA targets and excellent performance</p>
-              {agents.length > 0 ? (
-                <ul className="agent-list">
-                  {agents.map((a, idx) => (
-                    <li key={a.name} className="agent-item">
-                      <div className="agent-rank">#{idx + 1}</div>
-                      <div className="agent-info">
-                        <span className="agent-name">{a.name}</span>
-                        <span className="agent-meta">{a.tickets} tickets • {a.excellentRate}% excellent</span>
-                      </div>
-                      <div className="agent-sla">
-                        <strong>{a.avgSla}h</strong>
-                        <span>Avg SLA</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              {topAgents.length > 0 ? (
+                <>
+                  <ul className="agent-list">
+                    {topAgents.map((a, idx) => (
+                      <li key={a.name} className="agent-item">
+                        <div className="agent-rank">#{idx + 1}</div>
+                        <div className="agent-info">
+                          <span className="agent-name">{a.name}</span>
+                          <span className="agent-meta">{a.tickets} tickets • {a.excellentRate}% excellent</span>
+                        </div>
+                        <div className="agent-sla">
+                          <strong>{a.avgSla}h</strong>
+                          <span>Avg SLA</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {allAgents.length > 3 && (
+                    <button 
+                      className="view-more-btn"
+                      onClick={() => {
+                        setShowPerformersModal(true);
+                        setPerformersPage(1);
+                      }}
+                    >
+                      View All Performers ({allAgents.length})
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 6l4 4 4-4"></path>
+                      </svg>
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="empty-state">
                   <p>No performance data available yet</p>
@@ -658,6 +678,132 @@ const AdminDashboard = () => {
             </div>
           </section>
         </>
+      )}
+
+      {/* Modal for performers */}
+      {showPerformersModal && (
+        <div className="kpi-modal-overlay" onClick={() => setShowPerformersModal(false)}>
+          <div className="kpi-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="kpi-modal-header">
+              <h2>🏆 All Performers</h2>
+              <button className="modal-close-btn" onClick={() => setShowPerformersModal(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div className="kpi-modal-body">
+              {allAgents.length > 0 ? (
+                <>
+                  <div className="modal-stats">
+                    <div className="modal-count-section">
+                      <span className="modal-count">Total Performers: <strong>{allAgents.length}</strong></span>
+                    </div>
+                    <div className="modal-page-size">
+                      <label>Show:</label>
+                      <select 
+                        value={performersPageSize} 
+                        onChange={(e) => {
+                          setPerformersPageSize(Number(e.target.value));
+                          setPerformersPage(1);
+                        }}
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="modal-table-wrap">
+                    <table className="modal-table">
+                      <thead>
+                        <tr>
+                          <th>Rank</th>
+                          <th>Name</th>
+                          <th>Tickets</th>
+                          <th>Avg SLA (Hours)</th>
+                          <th>Excellent Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allAgents
+                          .slice((performersPage - 1) * performersPageSize, performersPage * performersPageSize)
+                          .map((agent, idx) => {
+                            const actualRank = (performersPage - 1) * performersPageSize + idx + 1;
+                            return (
+                              <tr key={agent.name}>
+                                <td>
+                                  <div className="agent-rank" style={{ display: 'inline-flex', width: '32px', height: '32px' }}>#{actualRank}</div>
+                                </td>
+                                <td className="name-col">{agent.name}</td>
+                                <td><strong>{agent.tickets}</strong></td>
+                                <td>
+                                  <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent-1)' }}>{agent.avgSla}h</span>
+                                </td>
+                                <td>
+                                  <span className={`sla-badge ${
+                                    agent.excellentRate >= 80 ? 'excellent' : 
+                                    agent.excellentRate >= 60 ? 'good' : 'poor'
+                                  }`}>
+                                    {agent.excellentRate}%
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {Math.ceil(allAgents.length / performersPageSize) > 1 && (
+                    <div className="modal-pagination">
+                      <button 
+                        className="pagination-btn"
+                        onClick={() => setPerformersPage(1)}
+                        disabled={performersPage === 1}
+                      >
+                        «
+                      </button>
+                      <button 
+                        className="pagination-btn"
+                        onClick={() => setPerformersPage(performersPage - 1)}
+                        disabled={performersPage === 1}
+                      >
+                        ‹
+                      </button>
+                      
+                      <div className="pagination-info">
+                        Page <strong>{performersPage}</strong> of <strong>{Math.ceil(allAgents.length / performersPageSize)}</strong>
+                      </div>
+                      
+                      <button 
+                        className="pagination-btn"
+                        onClick={() => setPerformersPage(performersPage + 1)}
+                        disabled={performersPage === Math.ceil(allAgents.length / performersPageSize)}
+                      >
+                        ›
+                      </button>
+                      <button 
+                        className="pagination-btn"
+                        onClick={() => setPerformersPage(Math.ceil(allAgents.length / performersPageSize))}
+                        disabled={performersPage === Math.ceil(allAgents.length / performersPageSize)}
+                      >
+                        »
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <p>No performance data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal for detailed view */}

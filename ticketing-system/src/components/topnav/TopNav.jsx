@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './topnav.css';
@@ -119,7 +120,7 @@ const TopNav = ({ initials = 'RT', userName = 'Admin' }) => {
           </div>
         )}
 
-        {showChange && (
+        {showChange && createPortal(
           <div className="um-modal-overlay" role="dialog" aria-modal="true">
             <div className="um-modal small">
               <h3>Change password</h3>
@@ -129,7 +130,8 @@ const TopNav = ({ initials = 'RT', userName = 'Admin' }) => {
                 <div className="row actions"><button type="button" className="btn-muted" onClick={() => setShowChange(false)}>Cancel</button><button className="btn-primary">Save</button></div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </header>

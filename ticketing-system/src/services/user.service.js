@@ -21,6 +21,10 @@ class UserService {
         return apiUrl.post("users/create", data);
     }
 
+    adminCreateUser(data) {
+        return apiUrl.post("tickets/admin/create-user", data);
+    }
+
     updateUser(id, data) {
         return apiUrl.patch(`users/update/${id}`, data);
     }
