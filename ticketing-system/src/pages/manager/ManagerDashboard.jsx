@@ -9,7 +9,6 @@ import UserService from '../../services/user.service';
 import SlaService from '../../services/sla.service';
 import TicketApprovalService from '../../services/ticketApproval.service';
 import AssignmentService from '../../services/assignment.service';
-import CreateTicketModal from '../../components/CreateTicketModal/CreateTicketModal';
 import { useAuth } from '../../context/AuthContext';
 import ApprovalStepper from '../../components/ApprovalStepper/ApprovalStepper';
 import '../admin.css';
@@ -47,11 +46,8 @@ const ManagerDashboard = () => {
   const [slaData, setSlaData]                 = useState([]);
   const [slaLoading, setSlaLoading]           = useState(true);
   const [managerProfile, setManagerProfile]   = useState(null);
-
-  // Create-ticket modal
-  const [openCreate, setOpenCreate]           = useState(false);
-  const [typesList, setTypesList]             = useState([]);
   const [departments, setDepartments]         = useState([]);
+  const [typesList, setTypesList]             = useState([]);
 
   // View-ticket modal
   const [selected, setSelected]               = useState(null);
@@ -118,20 +114,24 @@ const ManagerDashboard = () => {
       .catch(() => setDepartments([]));
   }, []);
 
+  // Load manager profile to get full user details including department
   useEffect(() => {
     if (!user?.id) return;
     UserService.getUserById(user.id)
-      .then(r => setManagerProfile(r?.data?.data || r?.data || null))
+      .then(r => {
+        const profile = r?.data?.data || r?.data || null;
+        setManagerProfile(profile);
+      })
       .catch(() => {});
   }, [user?.id]);
 
   // ── Scroll lock ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const open = openCreate || kpiModalOpen || !!selected;
+    const open = kpiModalOpen || !!selected;
     document.body.classList.toggle('modal-open', open);
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.classList.remove('modal-open'); document.body.style.overflow = ''; };
-  }, [openCreate, kpiModalOpen, selected]);
+  }, [kpiModalOpen, selected]);
 
   // Load officers when a QUEUED ticket is selected for potential reassignment
   useEffect(() => {
@@ -186,21 +186,30 @@ const ManagerDashboard = () => {
   }, [selected]);
 
   // ── Derived data ─────────────────────────────────────────────────────────────
-  const managerDept =
-    managerProfile?.departments?.department ||
-    managerProfile?.department ||
-    null;
+  // Get department from user JWT token (most reliable) or from profile
+  const userDepartmentId = user?.department_id;
+  const userDepartmentName = user?.department || managerProfile?.department?.department || null;
 
   // Officers see all tickets in department tab, managers see only their department
   const isOfficer = user?.role?.toLowerCase() === 'officer';
   const deptTickets = isOfficer 
     ? allTickets
     : allTickets.filter(t => {
-        if (!managerDept) return false;
-        const createdByDept = typeof t.created_by?.department === 'string' 
-          ? t.created_by?.department 
-          : t.created_by?.department?.department || '';
-        return String(createdByDept).trim().toUpperCase() === String(managerDept).toUpperCase();
+        if (!userDepartmentId) return false;
+        
+        // Check ticket's department via ticket_type (primary method)
+        const ticketDeptId = t.ticket_type?.department_id;
+        if (ticketDeptId && String(ticketDeptId) === String(userDepartmentId)) {
+          return true;
+        }
+        
+        // Fallback: check creator's department
+        const creatorDeptId = t.created_by?.department_id;
+        if (creatorDeptId && String(creatorDeptId) === String(userDepartmentId)) {
+          return true;
+        }
+        
+        return false;
       });
 
   const myTickets = allTickets.filter(t => {
@@ -231,13 +240,6 @@ const ManagerDashboard = () => {
   const closeKpiModal = ()    => { setKpiModalOpen(false); setKpiModalKey(null); };
   const modalDef = KPI_DEFS.find(k => k.key === kpiModalKey) || { label: 'Details', items: [] };
 
-  // ── Create-ticket handler ─────────────────────────────────────────────────────
-  const handleTicketCreated = () => {
-    setOpenCreate(false);
-    setSuccessMsg('Ticket created successfully.');
-    setTimeout(() => setSuccessMsg(''), 4000);
-    loadTickets();
-  };
 
   // ── Close ticket ──────────────────────────────────────────────────────────────
   const handleCloseTicket = async (ticketId) => {
@@ -335,8 +337,7 @@ const ManagerDashboard = () => {
     <>
       <PageHeader
         title="Manager Dashboard"
-        subtitle={`${activeTab === 'department' ? (isOfficer ? 'All' : (managerDept ? `${managerDept} Department` : 'Department')) : 'My'} tickets at a glance`}
-        actions={<button className="btn-primary" onClick={() => setOpenCreate(true)}>Create Ticket</button>}
+        subtitle={`${activeTab === 'department' ? (isOfficer ? 'All' : (userDepartmentName ? `${userDepartmentName} Department` : 'Department')) : 'My'} tickets at a glance`}
       />
 
       {/* Toast */}
@@ -352,7 +353,7 @@ const ManagerDashboard = () => {
         <button className={`mgr-tab ${activeTab === 'department' ? 'active' : ''}`} onClick={() => setActiveTab('department')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/></svg>
           {isOfficer ? 'All Tickets' : 'Department View'}
-          {!isOfficer && managerDept && <span className="mgr-tab-badge">{managerDept}</span>}
+          {!isOfficer && userDepartmentName && <span className="mgr-tab-badge">{userDepartmentName}</span>}
         </button>
         <button className={`mgr-tab ${activeTab === 'mine' ? 'active' : ''}`} onClick={() => setActiveTab('mine')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
@@ -534,16 +535,6 @@ const ManagerDashboard = () => {
             </div>
           </div>
         </div>, document.body
-      )}
-
-      {/* Create Ticket Modal */}
-      {openCreate && (
-        <CreateTicketModal
-          typesList={typesList}
-          departments={departments}
-          onClose={() => setOpenCreate(false)}
-          onCreated={handleTicketCreated}
-        />
       )}
 
       {/* View Ticket Modal */}

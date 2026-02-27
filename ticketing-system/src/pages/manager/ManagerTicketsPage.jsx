@@ -60,8 +60,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const [allTickets, setAllTickets]         = useState([]);
   const [loading, setLoading]               = useState(true);
   const [loadErr, setLoadErr]               = useState('');
-  const [managerDept, setManagerDept]       = useState('');
-  const [deptLoading, setDeptLoading]       = useState(!bypassDeptFilter);
+  const [managerProfile, setManagerProfile] = useState(null);
   const [successMsg, setSuccessMsg]         = useState('');
 
   // Filters
@@ -97,19 +96,15 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const [officers, setOfficers]             = useState([]);
   const [officersLoading, setOfficersLoading] = useState(true);
 
-  // Load manager department - use departments alias (plural) matching the backend fix
+  // Load manager profile to get full user details including department
   useEffect(() => {
-    if (bypassDeptFilter || !user?.id) { setDeptLoading(false); return; }
-    setDeptLoading(true);
+    if (bypassDeptFilter || !user?.id) return;
     UserService.getUserById(user.id)
       .then(r => {
-        const d = r?.data?.data || r?.data || {};
-        // Backend returns alias 'departments' (plural) after our fix
-        const dept = d?.departments?.department || d?.department || '';
-        setManagerDept(String(dept).trim().toUpperCase());
+        const profile = r?.data?.data || r?.data || null;
+        setManagerProfile(profile);
       })
-      .catch(() => {})
-      .finally(() => setDeptLoading(false));
+      .catch(() => {});
   }, [user?.id, bypassDeptFilter]);
 
   // Load all tickets
@@ -252,16 +247,30 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   }, [selected]);
 
   // Derived: split by tab
+  // Get department from user JWT token (most reliable) or from profile
+  const userDepartmentId = user?.department_id;
+  const userDepartmentName = user?.department || managerProfile?.department?.department || null;
+
   // Officers see all tickets in department tab, managers see only their department
   const isOfficer = user?.role?.toLowerCase() === 'officer';
   const deptTickets = (bypassDeptFilter || isOfficer)
     ? allTickets
     : allTickets.filter(t => {
-        if (!managerDept) return false;
-        const createdByDept = typeof t.created_by?.department === 'string' 
-          ? t.created_by?.department 
-          : t.created_by?.department?.department || '';
-        return String(createdByDept).trim().toUpperCase() === managerDept;
+        if (!userDepartmentId) return false;
+        
+        // Check ticket's department via ticket_type (primary method)
+        const ticketDeptId = t.ticket_type?.department_id;
+        if (ticketDeptId && String(ticketDeptId) === String(userDepartmentId)) {
+          return true;
+        }
+        
+        // Fallback: check creator's department
+        const creatorDeptId = t.created_by?.department_id;
+        if (creatorDeptId && String(creatorDeptId) === String(userDepartmentId)) {
+          return true;
+        }
+        
+        return false;
       });
 
   // Tickets assigned to the manager as an officer
@@ -281,9 +290,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const filtered = viewTickets.filter(t => {
     if (statusFilter !== 'All' && t.status !== statusFilter) return false;
     if (!q) return true;
-    const createdByDept = typeof t.created_by?.department === 'string' 
-      ? t.created_by?.department 
-      : t.created_by?.department?.department || '';
+    const createdByDept = t.created_by?.department?.department || '';
     return (
       (t.title               || '').toLowerCase().includes(q) ||
       (t.id                  || '').toLowerCase().includes(q) ||
@@ -394,7 +401,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
     finally { setReassignBusy(false); }
   };
 
-  const isDataLoading = loading || deptLoading;
+  const isDataLoading = loading;
 
   return (
     <>
@@ -403,7 +410,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
         subtitle={activeTab === 'department'
           ? (bypassDeptFilter || isOfficer)
             ? 'Organisation-wide view — all tickets'
-            : (managerDept ? `Department: ${managerDept}` : 'All department tickets')
+            : (userDepartmentName ? `Department: ${userDepartmentName}` : 'All department tickets')
           : 'Tickets assigned to you as officer'}
         actions={
           <button className="btn-primary" onClick={() => { resetCreate(); setModalOpen(true); }}>
@@ -431,8 +438,8 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
             <path d="M9 21v-6h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           {(bypassDeptFilter || isOfficer) ? 'All Tickets' : 'Department View'}
-          {!(bypassDeptFilter || isOfficer) && !deptLoading && managerDept && (
-            <span className="mgr-tab-badge">{managerDept}</span>
+          {!(bypassDeptFilter || isOfficer) && userDepartmentName && (
+            <span className="mgr-tab-badge">{userDepartmentName}</span>
           )}
           <span style={{ marginLeft: 6, background: activeTab === 'department' ? '#3b82f6' : '#e5e7eb', color: activeTab === 'department' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
             {deptTickets.length}
@@ -480,7 +487,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
         )}
 
         {/* Department warning */}
-        {activeTab === 'department' && !bypassDeptFilter && !deptLoading && !managerDept && (
+        {activeTab === 'department' && !bypassDeptFilter && !userDepartmentId && (
           <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 18px', color: '#92400e', fontSize: 13, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="#d97706" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="12" r="9" stroke="#d97706" strokeWidth="1.8"/></svg>
             Could not determine your department. Showing all tickets.
@@ -558,7 +565,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                       <td className="col-type">
                         <div style={{ fontWeight: 600, fontSize: 13, color: '#111827' }}>{t.created_by?.name || '-'}</div>
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-                          {typeof t.created_by?.department === 'string' ? t.created_by?.department : t.created_by?.department?.department || ''}
+                          {t.created_by?.department?.department || ''}
                         </div>
                       </td>
                     )}
@@ -590,7 +597,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         : activeTab === 'department'
                           ? bypassDeptFilter
                             ? 'No tickets found.'
-                            : (managerDept ? `No tickets found for ${managerDept} department.` : 'No department tickets found.')
+                            : (userDepartmentName ? `No tickets found for ${userDepartmentName} department.` : 'No department tickets found.')
                           : 'You have no submitted tickets yet.'}
                     </div>
                   </td>

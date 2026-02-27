@@ -138,6 +138,11 @@ export const AuthProvider = ({ children }) => {
       return false;
     } catch (error) {
       console.log('No active session');
+      // Clear any stale auth state
+      tokenRef.current = null;
+      setUser(null);
+      setAccessToken(null);
+      setIsAuthenticated(false);
       return false;
     } finally {
       setLoading(false);
