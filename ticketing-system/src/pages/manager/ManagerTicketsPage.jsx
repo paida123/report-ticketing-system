@@ -627,16 +627,21 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
               const isMyTab     = activeTab === 'mine';
 
               // In department view: only show approve/decline if the current manager
-              // is the assigned approver for the current pending step.
+              // has the required role and department for the current pending step.
               const isMineToApprove = isPending && (
                 isMyTab ||
-                (selected.approval_steps || []).some(step =>
-                  step.status === 'PENDING' && (
-                    String(step.approver?.email  || '').toLowerCase() === String(user?.email || '').toLowerCase() ||
-                    String(step.approver?.id     || '') === String(user?.id || '') ||
-                    String(step.approver_id      || '') === String(user?.id || '')
-                  )
-                )
+                (selected.approval_steps || []).some(step => {
+                  if (step.status !== 'PENDING') return false;
+                  
+                  // Check if user's role matches the step's required role
+                  const roleMatches = String(step.role_id || '') === String(user?.role_id || '');
+                  
+                  // Check if user's department matches (if step requires a specific department)
+                  const deptMatches = !step.department_id || 
+                    String(step.department_id || '') === String(user?.department_id || '');
+                  
+                  return roleMatches && deptMatches;
+                })
               );
 
               // Close Ticket is available if the ticket is active and assigned to the logged-in user

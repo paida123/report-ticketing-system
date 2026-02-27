@@ -550,6 +550,15 @@ const ManagerDashboard = () => {
               const creatorInitials = (selected.created_by?.name || 'U').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
               const isPending = selected.status === 'PENDING_APPROVAL';
               const canReassign = selected.status === 'QUEUED' && !selected.locked;
+              
+              // Check if current user can approve based on role_id and department_id
+              const isMineToApprove = isPending && (selected.approval_steps || []).some(step => {
+                if (step.status !== 'PENDING') return false;
+                const roleMatches = String(step.role_id || '') === String(user?.role_id || '');
+                const deptMatches = !step.department_id || String(step.department_id || '') === String(user?.department_id || '');
+                return roleMatches && deptMatches;
+              });
+              
               return (
                 <>
                   <div style={{ background: `linear-gradient(135deg,${m.color}18 0%,${m.color}08 100%)`, borderBottom: `2px solid ${m.color}25`, padding: '20px 24px', display: 'flex', alignItems: 'flex-start', gap: 14, flexShrink: 0 }}>
@@ -678,7 +687,7 @@ const ManagerDashboard = () => {
                         </button>
                       </>
                     )}
-                    {isPending && !declineOpen && !reassignOpen && (
+                    {isMineToApprove && !declineOpen && !reassignOpen && (
                       <>
                         <button onClick={() => { setDeclineOpen(true); setDeclineErr(''); setDeclineReason(''); }} disabled={approveBusy}
                           style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
@@ -691,7 +700,7 @@ const ManagerDashboard = () => {
                         </button>
                       </>
                     )}
-                    {isPending && declineOpen && !reassignOpen && (
+                    {isMineToApprove && declineOpen && !reassignOpen && (
                       <>
                         <button onClick={() => { setDeclineOpen(false); setDeclineReason(''); setDeclineErr(''); }} disabled={declineBusy}
                           style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
