@@ -109,7 +109,7 @@ body.modal-open .ts-card, body.modal-open .kpi { pointer-events: none; }
 .um-row.head .um-cell { font-weight:700; }
 .btn-primary { background:linear-gradient(90deg,#60a5fa,#3b82f6); color:white; border:none; padding:9px 18px; border-radius:10px; cursor:pointer; font-weight:700; font-size:14px; }
 .btn-muted { background:#f1f5f9; border:none; padding:9px 18px; border-radius:10px; cursor:pointer; font-size:14px; color:#374151; font-weight:600; }
-.icon-btn { width:36px; height:36px; border-radius:10px; border:1px solid rgba(148,163,184,0.28); background:#fff; color:#475569; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:background 0.14s,border-color 0.14s,color 0.14s; }
+.icon-btn { width:36px; height:36px; padding:0; border-radius:10px; border:1px solid rgba(148,163,184,0.28); background:#fff; color:#475569; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; transition:background 0.14s,border-color 0.14s,color 0.14s; }
 .icon-btn:hover { background:#eff6ff; border-color:rgba(59,130,246,0.35); color:#1d4ed8; }
 .icon-btn:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(59,130,246,0.25); }
 .chip { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; font-weight:700; font-size:12px; }

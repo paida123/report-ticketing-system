@@ -172,7 +172,7 @@ const AddTypeModal = ({ onClose, onSaved, departments, roles }) => {
 };
 
 /* -- EditTypeModal ---------------------------------------------------------- */
-const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, departments, roles }) => {
+const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, onDelete, departments, roles }) => {
   const [form, setForm] = useState({
     title: ticketType.title || '',
     department_id: String(ticketType.department_id || ''),
@@ -213,17 +213,31 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, department
       await TicketTypeService.updateTicketType(ticketType.id, {
         title, expected_sla_duration: sla, approval_required: cnt > 0, approval_count: cnt, department_id: dept,
       });
-      for (const step of existingSteps) {
-        try { await ApprovalStepsService.deleteApprovalStep(step.id); } catch (_) {}
-      }
+      const existingByStep = new Map(
+        existingSteps.map(s => [Number(s.approval_step_number || 0), s])
+      );
       for (let i = 0; i < cnt; i++) {
-        await ApprovalStepsService.createApprovalStep({
-          ticket_type_id: ticketType.id, 
-          approval_step_number: i + 1,
-          role_id: Number(form.chain[i].role_id), 
-          department_id: form.chain[i].department_id ? Number(form.chain[i].department_id) : null, 
+        const stepNum = i + 1;
+        const payload = {
+          approval_step_number: stepNum,
+          role_id: Number(form.chain[i].role_id),
+          department_id: form.chain[i].department_id ? Number(form.chain[i].department_id) : null,
           expected_sla_duration: sla,
-        });
+        };
+        const existing = existingByStep.get(stepNum);
+        if (existing?.id) {
+          await ApprovalStepsService.updateApprovalStep(existing.id, payload);
+        } else {
+          await ApprovalStepsService.createApprovalStep({
+            ticket_type_id: ticketType.id,
+            ...payload,
+          });
+        }
+      }
+      for (const step of existingSteps) {
+        if (Number(step.approval_step_number || 0) > cnt) {
+          try { await ApprovalStepsService.deleteApprovalStep(step.id); } catch (_) {}
+        }
       }
       onSaved('Ticket type updated successfully.', 'success');
       onClose();
@@ -262,6 +276,7 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, department
           {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
           <div className="row actions">
             <button type="button" className="btn-muted" onClick={onClose} disabled={saving}>Cancel</button>
+            <button type="button" className="btn-danger" onClick={() => onDelete(ticketType)} disabled={saving}>Delete</button>
             <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </form>
@@ -321,6 +336,16 @@ const ViewChainModal = ({ ticketType, onClose }) => {
       .finally(() => setLoading(false));
   }, [ticketType.id]);
 
+  const fallbackSteps = ticketType?.approval_count > 0
+    ? Array.from({ length: ticketType.approval_count }, (_, idx) => ({
+        approval_step_number: idx + 1,
+        Role: { role: 'Any role' },
+        departments: ticketType.departmental?.department ? { department: ticketType.departmental.department } : null,
+        __placeholder: true,
+      }))
+    : [];
+  const resolvedSteps = steps.length ? steps : fallbackSteps;
+
   return createPortal(
     <div className="um-modal-overlay" role="dialog" aria-modal="true">
       <div className="um-modal" style={{ minWidth: 520, maxWidth: 720 }}>
@@ -334,20 +359,20 @@ const ViewChainModal = ({ ticketType, onClose }) => {
           <button className="btn-muted" onClick={onClose}>Close</button>
         </div>
         <div className="approval-chain-stepper">
-          {loading ? <Spinner /> : steps.length ? (
+          {loading ? <Spinner /> : resolvedSteps.length ? (
             <div className="approval-chain" style={{ marginTop: 4 }}>
-              {steps.map((s, idx) => (
+              {resolvedSteps.map((s, idx) => (
                 <div className="approval-step" key={s.id || idx}>
                   <div className="approval-step-badge">{s.approval_step_number || idx + 1}</div>
                   <div className="approval-step-content">
-                    <div className="approval-step-role">{s.Role?.role || ''}</div>
+                    <div className="approval-step-role">{s.Role?.role || s.role?.role || s.role || '—'}</div>
                     <div className="approval-step-meta">
                       <span className="approval-step-tag">Approver role</span>
                       <span className="approval-step-tag secondary">
-                        {idx === 0 ? 'First approver' : idx === steps.length - 1 ? 'Final approver' : 'Next approver'}
+                        {idx === 0 ? 'First approver' : idx === resolvedSteps.length - 1 ? 'Final approver' : 'Next approver'}
                       </span>
-                      {s.departments?.department && (
-                        <span className="approval-step-tag">{s.departments.department}</span>
+                      {(s.departments?.department || s.Departments?.department || s.department?.department) && (
+                        <span className="approval-step-tag">{s.departments?.department || s.Departments?.department || s.department?.department}</span>
                       )}
                     </div>
                   </div>
@@ -684,7 +709,7 @@ const TicketsPage = () => {
                       {filteredTypes.slice((typesPage - 1) * TYPES_PAGE_SIZE, typesPage * TYPES_PAGE_SIZE).map(t => (
                         <tr key={t.id}>
                           <td><strong>{t.title}</strong></td>
-                          <td>{t.departments?.department || ''}</td>
+                          <td>{t.departmental?.department || ''}</td>
                           <td>{t.expected_sla_duration ?? ''}</td>
                           <td>
                             <span className={`chip ${t.approval_required ? 'in-process' : 'done'}`}>
@@ -708,9 +733,6 @@ const TicketsPage = () => {
                           <td className="actions-col">
                             <button className="icon-btn" title={`Edit ${t.title}`} onClick={() => openEdit(t)}>
                               <EditIcon />
-                            </button>
-                            <button className="icon-btn" title={`Delete ${t.title}`} onClick={() => setDeleteTarget(t)} style={{ color: '#ef4444', marginLeft: 4 }}>
-                              <TrashIcon />
                             </button>
                           </td>
                         </tr>
@@ -823,7 +845,17 @@ const TicketsPage = () => {
 
       {/*  Modals  */}
       {addOpen && <AddTypeModal onClose={() => setAddOpen(false)} onSaved={onSaved} departments={departments} roles={roles} />}
-      {editTarget && <EditTypeModal ticketType={editTarget.ticketType} existingSteps={editTarget.steps} onClose={() => setEditTarget(null)} onSaved={onSaved} departments={departments} roles={roles} />}
+      {editTarget && (
+        <EditTypeModal
+          ticketType={editTarget.ticketType}
+          existingSteps={editTarget.steps}
+          onClose={() => setEditTarget(null)}
+          onSaved={onSaved}
+          onDelete={(tt) => { setEditTarget(null); setDeleteTarget(tt); }}
+          departments={departments}
+          roles={roles}
+        />
+      )}
       {deleteTarget && <ConfirmDeleteModal ticketType={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={onSaved} />}
       {viewChainTarget && <ViewChainModal ticketType={viewChainTarget} onClose={() => setViewChainTarget(null)} />}
 

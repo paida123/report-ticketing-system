@@ -23,6 +23,20 @@ const getMedal = (score) => {
   return               { label: 'Fail',   emoji: '❌', cls: 'fail',   color: '#ef4444', desc: 'Below standard' };
 };
 
+const slaGradeColor = (g) => {
+  switch ((g || '').toUpperCase()) {
+    case 'EXCELLENT': return '#10b981';
+    case 'ON_TARGET': return '#3b82f6';
+    case 'POOR':      return '#ef4444';
+    default:          return '#94a3b8';
+  }
+};
+const slaIsMet = (r) => {
+  if (r.grade) return r.grade === 'EXCELLENT' || r.grade === 'ON_TARGET';
+  if (r.actual_sla == null || r.expected_sla == null) return false;
+  return r.actual_sla <= r.expected_sla;
+};
+
 const statusMeta = (s) => {
   switch (s) {
     case 'PENDING_APPROVAL': return { label: 'Pending Approval', cls: 'pending-approval', color: '#f59e0b' };
@@ -240,6 +254,7 @@ const ManagerDashboard = () => {
   const rejected    = byStatus('REJECTED');
 
   const KPI_DEFS = [
+    { key: 'total',   label: 'Total',   color: 'purple', items: viewTickets },
     { key: 'pending',  label: 'Pending',  color: 'amber', items: pending  },
     { key: 'active',   label: 'Active',   color: 'blue',  items: active   },
     { key: 'resolved', label: 'Resolved', color: 'green', items: resolved },
@@ -335,12 +350,13 @@ const ManagerDashboard = () => {
 
   // ── SLA calcs ─────────────────────────────────────────────────────────────────
   const slaTotal    = slaData.length;
-  const slaMet      = slaData.filter(r => r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla).length;
+  const slaMet      = slaData.filter(r => slaIsMet(r)).length;
   const slaBreached = slaTotal - slaMet;
   const slaScore    = slaTotal > 0 ? slaMet / slaTotal : 1;
   const slaMedal    = getMedal(slaScore);
   const slaPct      = Math.round(slaScore * 100);
-  const topFiveSla  = slaData.slice(0, 5);
+  const topTwoSla   = slaData.slice(0, 2);
+  const newest4 = (arr) => [...arr].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
@@ -402,17 +418,18 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : pending.length ? pending.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No pending tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : pending.length ? newest4(pending).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No pending tickets" />}
             </div>
-            {!ticketsLoading && pending.length > 4 && (
-              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openKpiModal('pending')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+            <div className="ts-footer">
+              <span className="ts-footer-count">{!ticketsLoading && pending.length > 4 ? `+${pending.length - 4} more` : ''}</span>
+              {!ticketsLoading && pending.length > 0 && (
+                <button className="ts-footer-btn" onClick={() => openKpiModal('pending')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  View all ({pending.length})
+                  View all
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Active */}
@@ -428,17 +445,18 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : active.length ? active.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No active tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : active.length ? newest4(active).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No active tickets" />}
             </div>
-            {!ticketsLoading && active.length > 4 && (
-              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openKpiModal('active')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+            <div className="ts-footer">
+              <span className="ts-footer-count">{!ticketsLoading && active.length > 4 ? `+${active.length - 4} more` : ''}</span>
+              {!ticketsLoading && active.length > 0 && (
+                <button className="ts-footer-btn" onClick={() => openKpiModal('active')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  View all ({active.length})
+                  View all
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Resolved */}
@@ -454,17 +472,18 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : resolved.length ? resolved.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No resolved tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : resolved.length ? newest4(resolved).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No resolved tickets" />}
             </div>
-            {!ticketsLoading && resolved.length > 4 && (
-              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openKpiModal('resolved')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+            <div className="ts-footer">
+              <span className="ts-footer-count">{!ticketsLoading && resolved.length > 4 ? `+${resolved.length - 4} more` : ''}</span>
+              {!ticketsLoading && resolved.length > 0 && (
+                <button className="ts-footer-btn" onClick={() => openKpiModal('resolved')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  View all ({resolved.length})
+                  View all
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Rejected */}
@@ -480,17 +499,18 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : rejected.length ? rejected.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No rejected tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : rejected.length ? newest4(rejected).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No rejected tickets" />}
             </div>
-            {!ticketsLoading && rejected.length > 4 && (
-              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openKpiModal('rejected')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+            <div className="ts-footer">
+              <span className="ts-footer-count">{!ticketsLoading && rejected.length > 4 ? `+${rejected.length - 4} more` : ''}</span>
+              {!ticketsLoading && rejected.length > 0 && (
+                <button className="ts-footer-btn" onClick={() => openKpiModal('rejected')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  View all ({rejected.length})
+                  View all
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* SLA — full width */}
@@ -524,11 +544,9 @@ const ManagerDashboard = () => {
             <div className="ts-col-head ts-head-sla"><span>ID</span><span>Officer</span><span>Status · Grade</span></div>
             <div className="ts-body">
               {slaLoading ? <SkeletonRows />
-                : topFiveSla.length ? topFiveSla.map((r, i) => {
-                    const isMet = r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla;
-                    const gc = r.grade
-                      ? (r.grade.toUpperCase() === 'A' ? '#10b981' : r.grade.toUpperCase() === 'B' ? '#3b82f6' : r.grade.toUpperCase() === 'C' ? '#f59e0b' : '#ef4444')
-                      : '#94a3b8';
+                : topTwoSla.length ? topTwoSla.map((r, i) => {
+                    const isMet = slaIsMet(r);
+                    const gc = slaGradeColor(r.grade);
                     return (
                       <div className="ts-card ts-card-sla" key={r.ticket_id || i} role="listitem">
                         <span className="tc-id" title={r.ticket_id} style={{ fontSize: 11 }}>{(r.ticket_id || '').slice(0, 12)}</span>
@@ -541,6 +559,16 @@ const ManagerDashboard = () => {
                     );
                   })
                 : <EmptyState msg="No SLA records yet" />}
+            </div>
+            <div className="ts-footer">
+              <span className="ts-footer-count">{!slaLoading && slaData.length > 2 ? `+${slaData.length - 2} more` : ''}</span>
+              {!slaLoading && slaData.length > 0 && (
+                <button className="ts-footer-btn" onClick={() => { window.location.href = '/manager/sla'; }} style={{ gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              )}
             </div>
           </div>
 

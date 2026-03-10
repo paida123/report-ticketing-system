@@ -66,6 +66,7 @@
 .icon-btn{
 	inline-size: 38px;
 	block-size: 38px;
+	padding: 0;
 	border-radius: 12px;
 	border: 1.5px solid #cbd5e1;
 	background: #fff;
@@ -74,11 +75,18 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	box-shadow: none;
 	transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
 
-.icon-btn svg { display: block; }
-.icon-btn svg path { stroke: #111827; }
+.icon-btn svg { display: block; flex-shrink: 0; pointer-events: none; }
+.icon-btn svg path,
+.icon-btn svg circle,
+.icon-btn svg line,
+.icon-btn svg polyline,
+.icon-btn svg polygon,
+.icon-btn svg rect { stroke: currentColor; }
+.icon-btn svg [fill]:not([fill="none"]) { fill: currentColor; }
 
 .icon-btn:hover{
 	transform: translateY(-1px);

@@ -588,13 +588,12 @@ const RolesConfiguration = () => {
 							<tr>
 								<th style={{ width: 80 }}>#</th>
 								<th>Role Name</th>
-								<th style={{ width: 140, textAlign: 'center' }}>Actions</th>
 							</tr>
 						</thead>
 						<tbody>
 							{loading && (
 								<tr>
-									<td colSpan={3}>
+									<td colSpan={2}>
 										<div className="role-loading">
 											<div className="role-loading-spinner"></div>
 											<p>Loading roles…</p>
@@ -606,24 +605,11 @@ const RolesConfiguration = () => {
 								<tr key={r.id}>
 									<td className="num-col">{i + 1}</td>
 									<td><span className="role-badge">{r.role}</span></td>
-									<td className="action-col">
-										<button
-											className="role-edit-btn"
-											title="Edit role"
-											aria-label={`Edit ${r.role}`}
-											onClick={() => setEditingRole(r)}
-										>
-											<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-												<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
-											</svg>
-											Edit
-										</button>
-									</td>
 								</tr>
 							))}
 							{!loading && filtered.length === 0 && !fetchError && (
 								<tr>
-									<td colSpan={3}>
+									<td colSpan={2}>
 										<div className="role-empty-state">
 											<svg viewBox="0 0 16 16" fill="currentColor">
 												<path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
