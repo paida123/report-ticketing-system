@@ -4,7 +4,6 @@ import PageHeader from '../../components/PageHeader/PageHeader';
 import StatsCard, { StatsRow } from '../../components/StatsCard/StatsCard';
 import TicketService from '../../services/ticket.service';
 import TicketApprovalService from '../../services/ticketApproval.service';
-import UserService from '../../services/user.service';
 import { useAuth } from '../../context/AuthContext';
 import '../admin.css';
 import '../user/UserTicketPage/UserTicketsPage.css';
@@ -33,7 +32,9 @@ const PendingApprovalPage = () => {
   const [loading, setLoading]             = useState(true);
   const [loadErr, setLoadErr]             = useState('');
   const [successMsg, setSuccessMsg]       = useState('');
-  const [managerDept, setManagerDept]     = useState('');
+
+  // Display-only: manager's own department from JWT
+  const managerDept = (user?.department || '').toUpperCase();
 
   const [selected, setSelected]           = useState(null);
 
@@ -47,40 +48,22 @@ const PendingApprovalPage = () => {
 
   const [query, setQuery]                 = useState('');
 
-  useEffect(() => {
-    if (!user?.id) return;
-    UserService.getUserById(user.id)
-      .then(r => {
-        const d = r?.data?.data;
-        const dept = d?.departments?.department || d?.department || '';
-        setManagerDept(String(dept).trim().toUpperCase());
-      })
-      .catch(() => {});
-  }, [user?.id]);
-
   const loadData = useCallback(() => {
     setLoading(true); setLoadErr('');
     Promise.all([
-      TicketService.getAllTickets({ limit: 200 }),
+      TicketService.getAllTickets({ limit: 200, view: 'pending_my_approval' }),
       TicketApprovalService.getAllApprovals().catch(() => ({ data: [] })),
     ])
       .then(([trRes, approvalRes]) => {
         const all = trRes?.data?.data?.tickets || [];
-        // Officers see all pending approvals, managers see only their department
-        const isOfficer = user?.role?.toLowerCase() === 'officer';
-        const pending = all.filter(t => {
-          if (t.status !== 'PENDING_APPROVAL') return false;
-          if (isOfficer || !managerDept) return true;
-          const tDept = String(t.created_by?.department || '').toUpperCase();
-          return tDept === managerDept;
-        });
-        setTickets(pending);
+        // Backend now filters by approval chain — no client-side department filter needed
+        setTickets(all);
         const approvals = approvalRes?.data?.data || approvalRes?.data || [];
         setAllApprovals(Array.isArray(approvals) ? approvals : []);
       })
       .catch(() => setLoadErr('Failed to load approval tasks. Please refresh.'))
       .finally(() => setLoading(false));
-  }, [managerDept, user]);
+  }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -97,7 +80,8 @@ const PendingApprovalPage = () => {
       (t.id || '').toLowerCase().includes(q) ||
       (t.ticket_type?.title || '').toLowerCase().includes(q) ||
       (t.created_by?.name || '').toLowerCase().includes(q) ||
-      (t.created_by?.department || '').toLowerCase().includes(q)
+      (t.created_by?.department?.department || '').toLowerCase().includes(q) ||
+      (t.ticket_type?.department?.department || '').toLowerCase().includes(q)
     );
   });
 
@@ -143,7 +127,7 @@ const PendingApprovalPage = () => {
     <>
       <PageHeader
         title="Pending Approvals"
-        subtitle={user?.role?.toLowerCase() === 'officer' ? 'All tickets awaiting approval' : (managerDept ? `Department: ${managerDept}` : 'Tickets awaiting your approval')}
+        subtitle="Tickets awaiting your approval based on your approval workflow assignments"
       />
 
       {successMsg && createPortal(

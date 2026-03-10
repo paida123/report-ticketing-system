@@ -117,7 +117,7 @@ const UserTicketsPage = () => {
   }, []);
 
   useEffect(() => {
-    TicketTypeService.getAllTicketTypes({ limit: 100 })
+    TicketTypeService.getAllTicketTypes({ limit: 500 })
       .then(r => {
         const d = r?.data?.data;
         setTypesList(Array.isArray(d?.ticket_types) ? d.ticket_types : []);

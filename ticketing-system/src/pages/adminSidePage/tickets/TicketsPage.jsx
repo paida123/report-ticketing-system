@@ -44,21 +44,32 @@ const Spinner = () => (
 );
 
 /* -- Chain rows helper ------------------------------------------------------- */
-const ChainRows = ({ count, chain, roles, onChange }) => {
+const ChainRows = ({ count, chain, roles, departments, onChange }) => {
   if (!count) return null;
   return (
     <div className="row" style={{ flexDirection: 'column', gap: 8 }}>
       <label style={{ margin: 0 }}>
-        Approval chain <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>first to last</span>
+        Approval chain <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Configure role and department per step</span>
       </label>
       <div className="approval-chain">
         {Array.from({ length: count }).map((_, idx) => (
-          <div className="approval-step" key={idx}>
-            <div className="approval-step-badge">{idx + 1}</div>
+          <div className="approval-step" key={idx} style={{ flexDirection: 'column', gap: 8, padding: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="approval-step-badge">{idx + 1}</div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>Step {idx + 1}</span>
+            </div>
             <div className="approval-step-select">
-              <select value={chain[idx] || ''} onChange={e => onChange(idx, e.target.value)}>
+              <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Required Role</label>
+              <select value={chain[idx]?.role_id || ''} onChange={e => onChange(idx, 'role_id', e.target.value)}>
                 <option value="">Select role</option>
                 {roles.map(r => <option key={r.id} value={r.id}>{r.role}</option>)}
+              </select>
+            </div>
+            <div className="approval-step-select">
+              <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Required Department</label>
+              <select value={chain[idx]?.department_id || ''} onChange={e => onChange(idx, 'department_id', e.target.value)}>
+                <option value="">Any department</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.department}</option>)}
               </select>
             </div>
           </div>
@@ -76,10 +87,16 @@ const AddTypeModal = ({ onClose, onSaved, departments, roles }) => {
 
   const setCount = (val) => {
     const c = Math.max(0, Math.min(10, Number(val) || 0));
-    setForm(prev => ({ ...prev, approvalCount: c, chain: Array.from({ length: c }, (_, i) => prev.chain[i] || '') }));
+    setForm(prev => ({ 
+      ...prev, 
+      approvalCount: c, 
+      chain: Array.from({ length: c }, (_, i) => prev.chain[i] || { role_id: '', department_id: '' }) 
+    }));
   };
-  const updateChain = (idx, val) => setForm(prev => {
-    const next = [...prev.chain]; next[idx] = val; return { ...prev, chain: next };
+  const updateChain = (idx, field, val) => setForm(prev => {
+    const next = [...prev.chain]; 
+    next[idx] = { ...(next[idx] || {}), [field]: val }; 
+    return { ...prev, chain: next };
   });
 
   const submit = async (e) => {
@@ -92,7 +109,7 @@ const AddTypeModal = ({ onClose, onSaved, departments, roles }) => {
     if (!title) return setErr('Type name is required.');
     if (!dept) return setErr('Department is required.');
     if (!sla || sla < 1) return setErr('SLA duration must be at least 1 hour.');
-    if (cnt > 0 && form.chain.some(r => !r)) return setErr('Please select all approver roles.');
+    if (cnt > 0 && form.chain.some(step => !step.role_id)) return setErr('Please select role for all approval steps.');
     setSaving(true);
     try {
       const res = await TicketTypeService.createTicketType({
@@ -101,8 +118,11 @@ const AddTypeModal = ({ onClose, onSaved, departments, roles }) => {
       const newType = res.data?.data;
       for (let i = 0; i < cnt; i++) {
         await ApprovalStepsService.createApprovalStep({
-          ticket_type_id: newType.id, approval_step_number: i + 1,
-          role_id: Number(form.chain[i]), department_id: dept, expected_sla_duration: sla,
+          ticket_type_id: newType.id, 
+          approval_step_number: i + 1,
+          role_id: Number(form.chain[i].role_id), 
+          department_id: form.chain[i].department_id ? Number(form.chain[i].department_id) : null, 
+          expected_sla_duration: sla,
         });
       }
       onSaved('Ticket type created successfully.', 'success');
@@ -138,7 +158,7 @@ const AddTypeModal = ({ onClose, onSaved, departments, roles }) => {
               <input type="number" min={0} max={10} value={form.approvalCount} onChange={e => setCount(e.target.value)} />
             </label>
           </div>
-          <ChainRows count={form.approvalCount} chain={form.chain} roles={roles} onChange={updateChain} />
+          <ChainRows count={form.approvalCount} chain={form.chain} roles={roles} departments={departments} onChange={updateChain} />
           {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
           <div className="row actions">
             <button type="button" className="btn-muted" onClick={onClose} disabled={saving}>Cancel</button>
@@ -158,17 +178,23 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, department
     department_id: String(ticketType.department_id || ''),
     sla: String(ticketType.expected_sla_duration || ''),
     approvalCount: Number(ticketType.approval_count || 0),
-    chain: existingSteps.map(s => String(s.role_id || '')),
+    chain: existingSteps.map(s => ({ role_id: String(s.role_id || ''), department_id: String(s.department_id || '') })),
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
   const setCount = (val) => {
     const c = Math.max(0, Math.min(10, Number(val) || 0));
-    setForm(prev => ({ ...prev, approvalCount: c, chain: Array.from({ length: c }, (_, i) => prev.chain[i] || '') }));
+    setForm(prev => ({ 
+      ...prev, 
+      approvalCount: c, 
+      chain: Array.from({ length: c }, (_, i) => prev.chain[i] || { role_id: '', department_id: '' }) 
+    }));
   };
-  const updateChain = (idx, val) => setForm(prev => {
-    const next = [...prev.chain]; next[idx] = val; return { ...prev, chain: next };
+  const updateChain = (idx, field, val) => setForm(prev => {
+    const next = [...prev.chain]; 
+    next[idx] = { ...(next[idx] || {}), [field]: val }; 
+    return { ...prev, chain: next };
   });
 
   const submit = async (e) => {
@@ -181,7 +207,7 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, department
     if (!title) return setErr('Type name is required.');
     if (!dept) return setErr('Department is required.');
     if (!sla || sla < 1) return setErr('SLA duration must be at least 1 hour.');
-    if (cnt > 0 && form.chain.some(r => !r)) return setErr('Please select all approver roles.');
+    if (cnt > 0 && form.chain.some(step => !step.role_id)) return setErr('Please select role for all approval steps.');
     setSaving(true);
     try {
       await TicketTypeService.updateTicketType(ticketType.id, {
@@ -192,8 +218,11 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, department
       }
       for (let i = 0; i < cnt; i++) {
         await ApprovalStepsService.createApprovalStep({
-          ticket_type_id: ticketType.id, approval_step_number: i + 1,
-          role_id: Number(form.chain[i]), department_id: dept, expected_sla_duration: sla,
+          ticket_type_id: ticketType.id, 
+          approval_step_number: i + 1,
+          role_id: Number(form.chain[i].role_id), 
+          department_id: form.chain[i].department_id ? Number(form.chain[i].department_id) : null, 
+          expected_sla_duration: sla,
         });
       }
       onSaved('Ticket type updated successfully.', 'success');
@@ -229,7 +258,7 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, department
               <input type="number" min={0} max={10} value={form.approvalCount} onChange={e => setCount(e.target.value)} />
             </label>
           </div>
-          <ChainRows count={form.approvalCount} chain={form.chain} roles={roles} onChange={updateChain} />
+          <ChainRows count={form.approvalCount} chain={form.chain} roles={roles} departments={departments} onChange={updateChain} />
           {err && <div className="err" style={{ marginTop: 6 }}>{err}</div>}
           <div className="row actions">
             <button type="button" className="btn-muted" onClick={onClose} disabled={saving}>Cancel</button>

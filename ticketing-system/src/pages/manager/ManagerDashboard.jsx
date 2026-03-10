@@ -43,6 +43,7 @@ const ManagerDashboard = () => {
   const [allTickets, setAllTickets]           = useState([]);
   const [ticketsLoading, setTicketsLoading]   = useState(true);
   const [ticketsError, setTicketsError]       = useState('');
+  const [pendingApprovalTickets, setPendingApprovalTickets] = useState([]);
   const [slaData, setSlaData]                 = useState([]);
   const [slaLoading, setSlaLoading]           = useState(true);
   const [managerProfile, setManagerProfile]   = useState(null);
@@ -82,8 +83,16 @@ const ManagerDashboard = () => {
   // ── Loaders ─────────────────────────────────────────────────────────────────
   const loadTickets = useCallback(() => {
     setTicketsLoading(true); setTicketsError('');
-    TicketService.getAllTickets({ limit: 200 })
-      .then(r => { const d = r?.data?.data; setAllTickets(Array.isArray(d?.tickets) ? d.tickets : []); })
+    Promise.all([
+      TicketService.getAllTickets({ limit: 200 }),
+      TicketService.getAllTickets({ limit: 200, view: 'pending_my_approval' }),
+    ])
+      .then(([allRes, pendingRes]) => {
+        const d = allRes?.data?.data;
+        setAllTickets(Array.isArray(d?.tickets) ? d.tickets : []);
+        const p = pendingRes?.data?.data;
+        setPendingApprovalTickets(Array.isArray(p?.tickets) ? p.tickets : []);
+      })
       .catch(() => setTicketsError('Failed to load tickets. Please refresh.'))
       .finally(() => setTicketsLoading(false));
   }, []);
@@ -224,7 +233,8 @@ const ManagerDashboard = () => {
 
   const viewTickets = activeTab === 'department' ? deptTickets : myTickets;
   const byStatus    = (...ss) => viewTickets.filter(t => ss.includes(t.status));
-  const pending     = byStatus('PENDING_APPROVAL');
+  // Use cross-department pending approval tickets from the dedicated endpoint
+  const pending     = activeTab === 'department' ? pendingApprovalTickets : byStatus('PENDING_APPROVAL');
   const active      = byStatus('QUEUED', 'PROCESSING');
   const resolved    = byStatus('RESOLVED', 'CLOSED');
   const rejected    = byStatus('REJECTED');

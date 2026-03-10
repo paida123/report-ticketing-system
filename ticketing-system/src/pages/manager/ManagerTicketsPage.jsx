@@ -53,11 +53,12 @@ const inputStyle = (hasErr) => ({
 const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const { user } = useAuth();
 
-  // Tab: 'department' | 'mine'
+  // Tab: 'department' | 'mine' | 'approval'
   const [activeTab, setActiveTab]           = useState('department');
 
   // Data
   const [allTickets, setAllTickets]         = useState([]);
+  const [pendingApprovalTickets, setPendingApprovalTickets] = useState([]);
   const [loading, setLoading]               = useState(true);
   const [loadErr, setLoadErr]               = useState('');
   const [managerProfile, setManagerProfile] = useState(null);
@@ -107,13 +108,18 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
       .catch(() => {});
   }, [user?.id, bypassDeptFilter]);
 
-  // Load all tickets
+  // Load all tickets + pending-approval tickets
   const loadTickets = useCallback(() => {
     setLoading(true); setLoadErr('');
-    TicketService.getAllTickets({ limit: 200 })
-      .then(r => {
-        const all = r?.data?.data?.tickets || [];
+    Promise.all([
+      TicketService.getAllTickets({ limit: 200 }),
+      TicketService.getAllTickets({ limit: 200, view: 'pending_my_approval' }),
+    ])
+      .then(([allRes, pendingRes]) => {
+        const all = allRes?.data?.data?.tickets || [];
         setAllTickets(Array.isArray(all) ? all : []);
+        const pa = pendingRes?.data?.data?.tickets || [];
+        setPendingApprovalTickets(Array.isArray(pa) ? pa : []);
       })
       .catch(() => setLoadErr('Failed to load tickets. Please refresh.'))
       .finally(() => setLoading(false));
@@ -284,7 +290,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
     return false;
   });
 
-  const viewTickets = activeTab === 'department' ? deptTickets : myTickets;
+  const viewTickets = activeTab === 'department' ? deptTickets : activeTab === 'approval' ? pendingApprovalTickets : myTickets;
 
   const q = query.trim().toLowerCase();
   const filtered = viewTickets.filter(t => {
@@ -411,7 +417,9 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
           ? (bypassDeptFilter || isOfficer)
             ? 'Organisation-wide view — all tickets'
             : (userDepartmentName ? `Department: ${userDepartmentName}` : 'All department tickets')
-          : 'Tickets assigned to you as officer'}
+          : activeTab === 'approval'
+            ? 'Tickets awaiting your approval across all departments'
+            : 'Tickets assigned to you as officer'}
         actions={
           <button className="btn-primary" onClick={() => { resetCreate(); setModalOpen(true); }}>
             + Create Ticket
@@ -443,6 +451,19 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
           )}
           <span style={{ marginLeft: 6, background: activeTab === 'department' ? '#3b82f6' : '#e5e7eb', color: activeTab === 'department' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
             {deptTickets.length}
+          </span>
+        </button>
+        <button
+          className={`mgr-tab${activeTab === 'approval' ? ' active' : ''}`}
+          onClick={() => { setActiveTab('approval'); setQuery(''); setStatusFilter('All'); }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6 }}>
+            <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
+          </svg>
+          Pending Approval
+          <span style={{ marginLeft: 6, background: activeTab === 'approval' ? '#f59e0b' : '#e5e7eb', color: activeTab === 'approval' ? '#fff' : '#64748b', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+            {pendingApprovalTickets.length}
           </span>
         </button>
         <button
@@ -511,7 +532,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                     Title
                   </span>
                 </th>
-                {activeTab === 'department' && (
+                {activeTab !== 'mine' && (
                   <th className="col-type">
                     <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -543,7 +564,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
             <tbody>
               {isDataLoading && [1,2,3,4,5].map(i => (
                 <tr key={i} className="utp-row utp-skeleton-row">
-                  <td colSpan={activeTab === 'department' ? 7 : 6}><div className="utp-skeleton" /></td>
+                  <td colSpan={activeTab !== 'mine' ? 7 : 6}><div className="utp-skeleton" /></td>
                 </tr>
               ))}
               {!isDataLoading && filtered.map(t => {
@@ -561,7 +582,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                     <td className="col-title">
                       <span className="ticket-title-text">{t.title}</span>
                     </td>
-                    {activeTab === 'department' && (
+                    {activeTab !== 'mine' && (
                       <td className="col-type">
                         <div style={{ fontWeight: 600, fontSize: 13, color: '#111827' }}>{t.created_by?.name || '-'}</div>
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
@@ -590,15 +611,17 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
               })}
               {!isDataLoading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={activeTab === 'department' ? 7 : 6}>
+                  <td colSpan={activeTab !== 'mine' ? 7 : 6}>
                     <div className="utp-empty" style={{ fontSize: 14 }}>
                       {query || statusFilter !== 'All'
                         ? 'No tickets match your filter.'
-                        : activeTab === 'department'
-                          ? bypassDeptFilter
-                            ? 'No tickets found.'
-                            : (userDepartmentName ? `No tickets found for ${userDepartmentName} department.` : 'No department tickets found.')
-                          : 'You have no submitted tickets yet.'}
+                        : activeTab === 'approval'
+                          ? 'No tickets are pending your approval.'
+                          : activeTab === 'department'
+                            ? bypassDeptFilter
+                              ? 'No tickets found.'
+                              : (userDepartmentName ? `No tickets found for ${userDepartmentName} department.` : 'No department tickets found.')
+                            : 'You have no submitted tickets yet.'}
                     </div>
                   </td>
                 </tr>

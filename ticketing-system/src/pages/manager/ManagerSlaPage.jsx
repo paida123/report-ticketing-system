@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PageHeader from '../../components/PageHeader/PageHeader';
 import SlaService from '../../services/sla.service';
-import TicketService from '../../services/ticket.service';
-import UserService from '../../services/user.service';
 import { useAuth } from '../../context/AuthContext';
 import '../admin.css';
 import '../user/UserSlaPage/UserSlaPage.css';
@@ -19,12 +17,14 @@ const getMedal = (score) => {
 
 const gradeColor = (g) => {
   switch ((g || '').toUpperCase()) {
-    case 'A': return '#10b981';
-    case 'B': return '#3b82f6';
-    case 'C': return '#f59e0b';
-    default:  return '#ef4444';
+    case 'EXCELLENT':  return '#10b981';
+    case 'ON_TARGET':  return '#3b82f6';
+    case 'POOR':       return '#ef4444';
+    default:           return '#94a3b8';
   }
 };
+
+const isMet = (r) => r.grade === 'EXCELLENT' || r.grade === 'ON_TARGET';
 
 const officerKey = (r) => {
   const a = r?.assigned_to;
@@ -47,11 +47,10 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
 
   /* Data */
   const [slaData,     setSlaData]     = useState([]);
-  const [allTickets,  setAllTickets]  = useState([]);
   const [slaLoading,  setSlaLoading]  = useState(true);
-  const [ticketsLoading, setTicketsLoading] = useState(true);
   const [loadErr,     setLoadErr]     = useState('');
   const [managerDept, setManagerDept] = useState('');
+  const [deptId,       setDeptId]       = useState(null);
   const [deptLoading, setDeptLoading] = useState(!bypassDeptFilter);
 
   /* Filter / modal */
@@ -59,18 +58,15 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
   const [selected, setSelected] = useState(null);
 
   /* ── Loaders ──────────────────────────────────────────────────────────── */
+  /* Pull department straight from the JWT-decoded user object */
   useEffect(() => {
-    if (bypassDeptFilter || !user?.id) { setDeptLoading(false); return; }
-    setDeptLoading(true);
-    UserService.getUserById(user.id)
-      .then(r => {
-        const d = r?.data?.data || r?.data || {};
-        const dept = d?.departments?.department || d?.department || '';
-        setManagerDept(String(dept).trim().toUpperCase());
-      })
-      .catch(() => {})
-      .finally(() => setDeptLoading(false));
-  }, [user?.id, bypassDeptFilter]);
+    if (bypassDeptFilter || !user) { setDeptLoading(false); return; }
+    const dept = user.department || '';
+    const dId  = user.department_id || null;
+    setManagerDept(String(dept).trim().toUpperCase());
+    setDeptId(dId);
+    setDeptLoading(false);
+  }, [user, bypassDeptFilter]);
 
   const loadSla = useCallback((params = {}) => {
     setSlaLoading(true);
@@ -82,17 +78,6 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       })
       .catch(() => setLoadErr('Failed to load SLA data. Please try again.'))
       .finally(() => setSlaLoading(false));
-  }, []);
-
-  const loadTickets = useCallback(() => {
-    setTicketsLoading(true);
-    TicketService.getAllTickets({ limit: 200 })
-      .then(r => {
-        const all = r?.data?.data?.tickets || [];
-        setAllTickets(Array.isArray(all) ? all : []);
-      })
-      .catch(() => {})
-      .finally(() => setTicketsLoading(false));
   }, []);
 
   // Load SLA data based on active tab and user role
@@ -125,15 +110,14 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       }
     }
     
-    loadTickets();
-  }, [activeTab, managerDept, deptLoading, user?.id, user?.role, bypassDeptFilter, loadSla, loadTickets]);
+  }, [activeTab, managerDept, deptLoading, user?.id, user?.role, bypassDeptFilter, loadSla]);
 
   useEffect(() => {
     document.body.style.overflow = selected ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [selected]);
 
-  const isLoading = slaLoading || ticketsLoading || deptLoading;
+  const isLoading = slaLoading || deptLoading;
   const isOfficer = user?.role?.toLowerCase() === 'officer';
 
   /* ── Filtered SLA sets ────────────────────────────────────────────────── */
@@ -149,7 +133,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       if (!k) return;
       if (!map[k]) map[k] = { met: 0, total: 0 };
       map[k].total++;
-      if (r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla) map[k].met++;
+      if (isMet(r)) map[k].met++;
     });
     return map;
   }, [slaData]);
@@ -158,7 +142,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
   const stats = useMemo(() => {
     if (!viewRecords.length) return { total: 0, met: 0, breached: 0, score: 1 };
     const total    = viewRecords.length;
-    const met      = viewRecords.filter(r => r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla).length;
+    const met      = viewRecords.filter(r => isMet(r)).length;
     const breached = total - met;
     const score    = total > 0 ? met / total : 1;
     return { total, met, breached, score };
@@ -292,7 +276,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
               <path d="M12 8v4M12 16h.01" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             {loadErr}
-            <button onClick={() => { loadSla(); loadTickets(); }}>Retry</button>
+            <button onClick={() => { loadSla(); }}>Retry</button>
           </div>
         )}
 
@@ -363,7 +347,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
                   ))}
 
                   {!isLoading && filtered.map((r, i) => {
-                    const met    = r.actual_sla != null && r.expected_sla != null && r.actual_sla <= r.expected_sla;
+                    const met    = isMet(r);
                     const gColor = gradeColor(r.grade);
 
                     /* Overall SLA for this record's officer across department */
@@ -448,7 +432,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
         <div className="sla-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}>
           <div className="sla-modal">
             {(() => {
-              const met    = selected.actual_sla != null && selected.expected_sla != null && selected.actual_sla <= selected.expected_sla;
+              const met    = isMet(selected);
               const gColor = gradeColor(selected.grade);
 
               /* Officer overall SLA for department tab */
