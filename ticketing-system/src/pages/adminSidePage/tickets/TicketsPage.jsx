@@ -25,8 +25,8 @@ const Toast = ({ msg, type, onDone }) => {
 /* -- Icons ------------------------------------------------------------------ */
 const EyeIcon = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 5c5.5 0 10 4.5 11 7-1 2.5-5.5 7-11 7S2 14.5 1 12c1-2.5 5.5-7 11-7z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke="currentColor" strokeWidth="2" />
+    <path d="M12 5c5.5 0 10 4.5 11 7-1 2.5-5.5 7-11 7S2 14.5 1 12c1-2.5 5.5-7 11-7z" stroke="#111827" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke="#111827" strokeWidth="2" />
   </svg>
 );
 const EditIcon = () => (
@@ -530,14 +530,17 @@ const ViewTicketModal = ({ ticket, onClose, onClosed }) => {
               onClick={doClose} disabled={closing}
               style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: closing ? '#fca5a5' : 'linear-gradient(135deg,#fb7185,#ef4444)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: closing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: closing ? 'none' : '0 4px 14px rgba(239,68,68,0.3)' }}
             >
-              {closing && <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+              {closing ? <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>}
               {closing ? 'Closing…' : 'Close Ticket'}
             </button>
           )}
           <button
             onClick={onClose} disabled={closing}
-            style={{ padding: '9px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: closing ? 'not-allowed' : 'pointer', opacity: closing ? 0.7 : 1 }}
-          >Dismiss</button>
+            style={{ padding: '9px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: closing ? 'not-allowed' : 'pointer', opacity: closing ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 7 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            Dismiss
+          </button>
         </div>
       </div>
     </div>,
@@ -547,12 +550,14 @@ const ViewTicketModal = ({ ticket, onClose, onClosed }) => {
 
 /* -- TicketsPage ------------------------------------------------------------ */
 const TicketsPage = () => {
+  const TYPES_PAGE_SIZE = 10;
   const [viewMode, setViewMode] = useState('types');
 
   /* ticket types */
   const [typesList, setTypesList] = useState([]);
   const [typesLoading, setTypesLoading] = useState(false);
   const [typeQuery, setTypeQuery] = useState('');
+  const [typesPage, setTypesPage] = useState(1);
 
   /* lookups */
   const [departments, setDepartments] = useState([]);
@@ -617,7 +622,7 @@ const TicketsPage = () => {
   const loadTickets = useCallback(async (page = 1, status = 'All', search = '') => {
     setTicketsLoading(true);
     try {
-      const params = { page, limit: 20 };
+      const params = { page, limit: 10 };
       if (status !== 'All') params.status = status;
       if (search.trim()) params.search = search.trim();
       const res = await TicketService.getAllTickets(params);
@@ -641,8 +646,8 @@ const TicketsPage = () => {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <div className="external-actions">
-        <button className={`external-btn ${viewMode === 'tickets' ? 'active' : ''}`} onClick={() => setViewMode('tickets')}>Tickets Created</button>
-        <button className={`external-btn ${viewMode === 'types' ? 'active' : ''}`} onClick={() => setViewMode('types')}>Ticket Types</button>
+        <button className={`external-btn ${viewMode === 'tickets' ? 'active' : ''}`} onClick={() => { setViewMode('tickets'); setTicketsPage(1); }}>Tickets Created</button>
+        <button className={`external-btn ${viewMode === 'types' ? 'active' : ''}`} onClick={() => { setViewMode('types'); setTypesPage(1); }}>Ticket Types</button>
       </div>
 
       <section className="panel tickets-panel">
@@ -654,8 +659,8 @@ const TicketsPage = () => {
               <h3>Configured Ticket Types</h3>
               <div className="types-header-actions">
                 <div className="types-filter">
-                  <input value={typeQuery} onChange={e => setTypeQuery(e.target.value)} placeholder="Search ticket type" />
-                  {typeQuery && <button className="btn-muted" onClick={() => setTypeQuery('')}>Clear</button>}
+                  <input value={typeQuery} onChange={e => { setTypeQuery(e.target.value); setTypesPage(1); }} placeholder="Search ticket type" />
+                  {typeQuery && <button className="btn-muted" onClick={() => { setTypeQuery(''); setTypesPage(1); }}>Clear</button>}
                 </div>
                 <button className="btn-primary" onClick={() => setAddOpen(true)}>+ Add Type</button>
               </div>
@@ -676,7 +681,7 @@ const TicketsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTypes.map(t => (
+                      {filteredTypes.slice((typesPage - 1) * TYPES_PAGE_SIZE, typesPage * TYPES_PAGE_SIZE).map(t => (
                         <tr key={t.id}>
                           <td><strong>{t.title}</strong></td>
                           <td>{t.departments?.department || ''}</td>
@@ -724,9 +729,18 @@ const TicketsPage = () => {
             </div>
 
             {!typesLoading && (
-              <div className="muted" style={{ fontSize: 13, padding: '8px 4px' }}>
-                {filteredTypes.length} ticket type{filteredTypes.length !== 1 ? 's' : ''}{typeQuery ? ` matching "${typeQuery}"` : ''}
-              </div>
+              <>
+                {filteredTypes.length > TYPES_PAGE_SIZE && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px', fontSize: 13 }}>
+                    <button className="btn-muted" disabled={typesPage <= 1} onClick={() => setTypesPage(p => p - 1)}>&#8592; Prev</button>
+                    <span className="muted">Page {typesPage} of {Math.max(1, Math.ceil(filteredTypes.length / TYPES_PAGE_SIZE))}</span>
+                    <button className="btn-muted" disabled={typesPage >= Math.ceil(filteredTypes.length / TYPES_PAGE_SIZE)} onClick={() => setTypesPage(p => p + 1)}>Next &#8594;</button>
+                  </div>
+                )}
+                <div className="muted" style={{ fontSize: 13, padding: '8px 4px' }}>
+                  {filteredTypes.length} ticket type{filteredTypes.length !== 1 ? 's' : ''}{typeQuery ? ` matching "${typeQuery}"` : ''}
+                </div>
+              </>
             )}
           </div>
         )}

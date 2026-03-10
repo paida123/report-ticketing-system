@@ -1,7 +1,7 @@
 /* Stats Row Container */
 .stats-row {
   display: flex;
-  gap: 16px;
+  gap: 24px;
   flex-wrap: wrap;
   margin-bottom: 28px;
 }
@@ -109,7 +109,7 @@
 /* Responsive */
 @media (max-width: 900px) {
   .stats-row {
-    gap: 12px;
+    gap: 16px;
   }
   
   .stats-card {

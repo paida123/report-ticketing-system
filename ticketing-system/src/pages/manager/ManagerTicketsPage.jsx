@@ -37,11 +37,13 @@ const FILTER_OPTIONS = [
 ];
 
 const STATUS_ICONS = {
-  'pending-approval': '|T|',
-  'in-process': '|>|',
-  'done': '|v|',
-  'overdue': '|!|',
+  'pending-approval': '⏳',
+  'in-process': '⚡',
+  'done': '✅',
+  'overdue': '❌',
 };
+
+const PAGE_SIZE = 10;
 
 const inputStyle = (hasErr) => ({
   width: '100%', padding: '10px 14px', borderRadius: 10,
@@ -96,6 +98,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
   const [typesList, setTypesList]           = useState([]);
   const [officers, setOfficers]             = useState([]);
   const [officersLoading, setOfficersLoading] = useState(true);
+  const [page, setPage]                     = useState(1);
 
   // Load manager profile to get full user details including department
   useEffect(() => {
@@ -439,7 +442,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
       <div className="mgr-tabs" style={{ marginBottom: 4 }}>
         <button
           className={`mgr-tab${activeTab === 'department' ? ' active' : ''}`}
-          onClick={() => { setActiveTab('department'); setQuery(''); setStatusFilter('All'); }}
+          onClick={() => { setActiveTab('department'); setQuery(''); setStatusFilter('All'); setPage(1); }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6 }}>
             <path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -455,7 +458,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
         </button>
         <button
           className={`mgr-tab${activeTab === 'approval' ? ' active' : ''}`}
-          onClick={() => { setActiveTab('approval'); setQuery(''); setStatusFilter('All'); }}
+          onClick={() => { setActiveTab('approval'); setQuery(''); setStatusFilter('All'); setPage(1); }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6 }}>
             <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -468,7 +471,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
         </button>
         <button
           className={`mgr-tab${activeTab === 'mine' ? ' active' : ''}`}
-          onClick={() => { setActiveTab('mine'); setQuery(''); setStatusFilter('All'); }}
+          onClick={() => { setActiveTab('mine'); setQuery(''); setStatusFilter('All'); setPage(1); }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6 }}>
             <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/>
@@ -490,11 +493,11 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
               className="utp-search-input"
               placeholder={activeTab === 'department' ? 'Search title, ID, type, requester...' : 'Search title, ID, type or requester...'}
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { setQuery(e.target.value); setPage(1); }}
             />
             {query && <button className="utp-search-clear" onClick={() => setQuery('')} aria-label="Clear search">&times;</button>}
           </div>
-          <select className="utp-filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <select className="utp-filter-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
             {FILTER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           {!isDataLoading && <span className="utp-count">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>}
@@ -567,7 +570,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                   <td colSpan={activeTab !== 'mine' ? 7 : 6}><div className="utp-skeleton" /></td>
                 </tr>
               ))}
-              {!isDataLoading && filtered.map(t => {
+              {!isDataLoading && filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(t => {
                 const m = statusMeta(t.status);
                 return (
                   <tr
@@ -603,7 +606,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         onClick={e => { e.stopPropagation(); setCloseTicketErr(''); setApproveErr(''); setDeclineErr(''); setDeclineOpen(false); setDeclineReason(''); setSelected(t); }}
                         aria-label="View ticket"
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6a1.2 1.2 0 0 1 0 .9c-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6a1.2 1.2 0 0 1 0 .9c-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="#111827" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="#111827" strokeWidth="1.7"/></svg>
                       </button>
                     </td>
                   </tr>
@@ -629,6 +632,29 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!isDataLoading && filtered.length > PAGE_SIZE && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '16px 0 8px' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.6 : 1 }}
+            >
+              Prev
+            </button>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>
+              Page {page} of {Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}
+            </div>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+              disabled={page >= Math.ceil(filtered.length / PAGE_SIZE)}
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'not-allowed' : 'pointer', opacity: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 0.6 : 1 }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </section>
 
       {/* View Ticket Modal */}
@@ -678,7 +704,7 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                   {/* Modal header */}
                   <div style={{ background: `linear-gradient(135deg,${m.color}22,${m.color}0a)`, borderBottom: `2px solid ${m.color}28`, padding: '22px 26px', display: 'flex', alignItems: 'flex-start', gap: 14, flexShrink: 0 }}>
                     <div style={{ width: 46, height: 46, borderRadius: 13, background: m.color + '20', border: `2px solid ${m.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
-                      {m.cls === 'pending-approval' ? '|T|' : m.cls === 'in-process' ? '|>|' : m.cls === 'done' ? '|v|' : '|!|'}
+                      {m.cls === 'pending-approval' ? '⏳' : m.cls === 'in-process' ? '⚡' : m.cls === 'done' ? '✅' : '❌'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1.35, marginBottom: 6, wordBreak: 'break-word' }}>{selected.title}</div>
@@ -802,8 +828,9 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                     {canReassign && !reassignOpen && (
                       <button
                         onClick={() => { setReassignOpen(true); setReassignErr(''); setReassignOfficer(''); }}
-                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}
                       >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17 1l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 11V9a4 4 0 0 1 4-4h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 23l-4-4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         Reassign
                       </button>
                     )}
@@ -831,8 +858,9 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         <button
                           onClick={() => { setDeclineOpen(true); setDeclineErr(''); setDeclineReason(''); }}
                           disabled={approveBusy}
-                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}
                         >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
                           Decline
                         </button>
                         <button
@@ -840,8 +868,8 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                           disabled={approveBusy}
                           style={{ padding: '9px 22px', borderRadius: 10, border: 'none', background: approveBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: approveBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
                         >
-                          {approveBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
-                          {approveBusy ? 'Approving...' : 'Approve'}
+                          {approveBusy ? <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          {approveBusy ? 'Approving…' : 'Approve'}
                         </button>
                       </>
                     )}
@@ -870,14 +898,15 @@ const ManagerTicketsPage = ({ bypassDeptFilter = false }) => {
                         disabled={closeTicketBusy}
                         style={{ padding: '9px 22px', borderRadius: 10, border: 'none', background: closeTicketBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: closeTicketBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
                       >
-                        {closeTicketBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
-                        {closeTicketBusy ? 'Closing...' : 'Close Ticket'}
+                        {closeTicketBusy ? <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>}
+                        {closeTicketBusy ? 'Closing…' : 'Close Ticket'}
                       </button>
                     )}
                     <button
                       onClick={closeModal}
-                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}
                     >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                       Dismiss
                     </button>
                   </div>

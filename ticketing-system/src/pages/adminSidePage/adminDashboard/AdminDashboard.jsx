@@ -18,6 +18,9 @@ const AdminDashboard = () => {
   const [showPerformersModal, setShowPerformersModal] = useState(false);
   const [performersPage, setPerformersPage] = useState(1);
   const [performersPageSize, setPerformersPageSize] = useState(10);
+  const [showActivitiesModal, setShowActivitiesModal] = useState(false);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [activitiesPageSize, setActivitiesPageSize] = useState(10);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -234,10 +237,9 @@ const AdminDashboard = () => {
     setModalPage(newPage);
   };
 
-  // Recent activities from tickets (latest 5)
-  const activities = tickets
+  // Recent activities from tickets (latest 4)
+  const allActivities = tickets
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5)
     .map((t) => {
       const timeAgo = getTimeAgo(t.created_at);
       const typeName = t.ticket_type?.type_name || 'Request';
@@ -249,6 +251,7 @@ const AdminDashboard = () => {
         time: timeAgo,
       };
     });
+  const activities = allActivities.slice(0, 4);
 
   // Calculate ticket volume for last 14 days
   const getLast14Days = () => {
@@ -283,6 +286,7 @@ const AdminDashboard = () => {
 
     return { created, resolved };
   });
+  const seriesLabels = last14Days.map((d) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
 
   // Top performers by highest average expected SLA (higher target = better performer)
   const agentStats = {};
@@ -363,13 +367,13 @@ const AdminDashboard = () => {
   };
 
   /* Small interactive ticket chart component */
-  const TicketChart = ({ series }) => {
+  const TicketChart = ({ series, labels }) => {
     const svgRef = useRef(null);
     const [hover, setHover] = useState({ idx: -1, x: 0, y: 0 });
 
-    const width = 560;
-    const height = 140;
-    const pad = { left: 36, right: 12, top: 12, bottom: 26 };
+    const width = 640;
+    const height = 260;
+    const pad = { left: 42, right: 14, top: 16, bottom: 34 };
 
     const maxVal = Math.max(...series.map((s) => Math.max(s.created, s.resolved))) + 8;
     const xStep = (width - pad.left - pad.right) / (series.length - 1);
@@ -462,10 +466,10 @@ const AdminDashboard = () => {
 
           {/* x-axis labels (light) */}
           {series.map((_, i) => {
-            if (i % 3 !== 0) return null;
+            if (i % 2 !== 0) return null;
             return (
               <text key={i} x={toX(i)} y={height - 6} fontSize="10" fill="#6b7280" textAnchor="middle">
-                {`D${i + 1}`}
+                {labels && labels[i] ? labels[i] : `D${i + 1}`}
               </text>
             );
           })}
@@ -477,7 +481,7 @@ const AdminDashboard = () => {
             className="chart-tooltip"
             style={{ left: hover.x + 8, top: hover.y - 36 }}
           >
-            <div style={{ fontSize: 12, fontWeight: 700 }}>Day {hover.idx + 1}</div>
+            <div style={{ fontSize: 12, fontWeight: 700 }}>{labels && labels[hover.idx] ? labels[hover.idx] : `Day ${hover.idx + 1}`}</div>
             <div style={{ fontSize: 13, color: "#2563eb" }}>Created: {series[hover.idx].created}</div>
             <div style={{ fontSize: 13, color: "#10b981" }}>Resolved: {series[hover.idx].resolved}</div>
           </div>
@@ -539,7 +543,7 @@ const AdminDashboard = () => {
           <section className="dashboard-grid">
             <div className="panel">
               <h3>Ticket Volume Overview (Last 14 Days)</h3>
-              <TicketChart series={series} />
+              <TicketChart series={series} labels={seriesLabels} />
               <div className="legend muted">
                 <div className="legend-item">
                   <span className="legend-dot" style={{ background: "#2563eb" }}></span>
@@ -632,6 +636,19 @@ const AdminDashboard = () => {
                   <p>No recent activity</p>
                 </div>
               )}
+              {allActivities.length > 4 && (
+                <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
+                  <button
+                    className="view-more-btn"
+                    onClick={() => { setShowActivitiesModal(true); setActivitiesPage(1); }}
+                  >
+                    +{allActivities.length - 4} more activities
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 6l4 4 4-4"></path>
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="panel department-overview-card">
@@ -648,7 +665,7 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {departments.slice(0, 10).map((dept) => (
+                      {departments.slice(0, 4).map((dept) => (
                         <tr key={dept.name}>
                           <td>{dept.name}</td>
                           <td>{dept.open}</td>
@@ -675,6 +692,11 @@ const AdminDashboard = () => {
                   </div>
                 )}
               </div>
+              {departments.length > 4 && (
+                <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
+                  <span style={{ fontSize: 13, color: '#6366f1', fontWeight: 600, cursor: 'default' }}>+{departments.length - 4} more departments</span>
+                </div>
+              )}
             </div>
           </section>
         </>
@@ -799,6 +821,116 @@ const AdminDashboard = () => {
               ) : (
                 <div className="empty-state">
                   <p>No performance data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for all activities */}
+      {showActivitiesModal && (
+        <div className="kpi-modal-overlay" onClick={() => setShowActivitiesModal(false)}>
+          <div className="kpi-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="kpi-modal-header">
+              <h2>📋 All Activities</h2>
+              <button className="modal-close-btn" onClick={() => setShowActivitiesModal(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div className="kpi-modal-body">
+              {allActivities.length > 0 ? (
+                <>
+                  <div className="modal-stats">
+                    <div className="modal-count-section">
+                      <span className="modal-count">Total Activities: <strong>{allActivities.length}</strong></span>
+                    </div>
+                    <div className="modal-page-size">
+                      <label>Show:</label>
+                      <select
+                        value={activitiesPageSize}
+                        onChange={(e) => {
+                          setActivitiesPageSize(Number(e.target.value));
+                          setActivitiesPage(1);
+                        }}
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="modal-table-wrap">
+                    <table className="modal-table">
+                      <thead>
+                        <tr>
+                          <th>Ticket ID</th>
+                          <th>Description</th>
+                          <th>Status</th>
+                          <th>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allActivities
+                          .slice((activitiesPage - 1) * activitiesPageSize, activitiesPage * activitiesPageSize)
+                          .map((a) => (
+                            <tr key={a.id}>
+                              <td className="ticket-id-col"><code>#{a.ticketId}</code></td>
+                              <td className="description-col">{a.description}</td>
+                              <td>
+                                <span className={`status-badge status-${a.status.toLowerCase().replace(/_/g, '-')}`}>
+                                  {a.status.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="time-col muted">{a.time}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {Math.ceil(allActivities.length / activitiesPageSize) > 1 && (
+                    <div className="modal-pagination">
+                      <button
+                        className="pagination-btn"
+                        onClick={() => setActivitiesPage(1)}
+                        disabled={activitiesPage === 1}
+                      >
+                        «
+                      </button>
+                      <button
+                        className="pagination-btn"
+                        onClick={() => setActivitiesPage(activitiesPage - 1)}
+                        disabled={activitiesPage === 1}
+                      >
+                        ‹
+                      </button>
+                      <div className="pagination-info">
+                        Page <strong>{activitiesPage}</strong> of <strong>{Math.ceil(allActivities.length / activitiesPageSize)}</strong>
+                      </div>
+                      <button
+                        className="pagination-btn"
+                        onClick={() => setActivitiesPage(activitiesPage + 1)}
+                        disabled={activitiesPage === Math.ceil(allActivities.length / activitiesPageSize)}
+                      >
+                        ›
+                      </button>
+                      <button
+                        className="pagination-btn"
+                        onClick={() => setActivitiesPage(Math.ceil(allActivities.length / activitiesPageSize))}
+                        disabled={activitiesPage === Math.ceil(allActivities.length / activitiesPageSize)}
+                      >
+                        »
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <p>No activity data available</p>
                 </div>
               )}
             </div>

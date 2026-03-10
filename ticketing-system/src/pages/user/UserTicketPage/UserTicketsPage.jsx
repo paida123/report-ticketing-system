@@ -35,6 +35,8 @@ const FILTER_OPTIONS = [
   { value: "REJECTED",         label: "Rejected" },
 ];
 
+const PAGE_SIZE = 10;
+
 const UserTicketsPage = () => {
   const { user } = useAuth();
 
@@ -60,6 +62,7 @@ const UserTicketsPage = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [activeTab, setActiveTab]       = useState("assigned");
   const [acceptBusy, setAcceptBusy]     = useState(null);
+  const [page, setPage]                 = useState(1);
 
   /*  Create ticket modal  */
   const [ctForm, setCtForm]             = useState({ title: "", description: "", department_id: "", ticket_type_id: "", assigned_to: "" });
@@ -349,13 +352,13 @@ const UserTicketsPage = () => {
       )}
 
       <div className="utp-tabs">
-        <button className={`utp-tab ${activeTab === "assigned" ? "active" : ""}`} onClick={() => setActiveTab("assigned")}>
+        <button className={`utp-tab ${activeTab === "assigned" ? "active" : ""}`} onClick={() => { setActiveTab("assigned"); setPage(1); }}>
           Assigned To Me
         </button>
-        <button className={`utp-tab ${activeTab === "created" ? "active" : ""}`} onClick={() => setActiveTab("created")}>
+        <button className={`utp-tab ${activeTab === "created" ? "active" : ""}`} onClick={() => { setActiveTab("created"); setPage(1); }}>
           Created By Me
         </button>
-        <button className={`utp-tab ${activeTab === "department" ? "active" : ""}`} onClick={() => setActiveTab("department")}>
+        <button className={`utp-tab ${activeTab === "department" ? "active" : ""}`} onClick={() => { setActiveTab("department"); setPage(1); }}>
           Department
         </button>
       </div>
@@ -376,10 +379,10 @@ const UserTicketsPage = () => {
         <div className="utp-toolbar">
           <div className="utp-search">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="utp-search-icon"><circle cx="11" cy="11" r="7" stroke="#94a3b8" strokeWidth="1.8"/><path d="M16.5 16.5l3.5 3.5" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/></svg>
-            <input className="utp-search-input" placeholder="Search by title, type or ID" value={query} onChange={e => setQuery(e.target.value)} />
+            <input className="utp-search-input" placeholder="Search by title, type or ID" value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} />
             {query && <button className="utp-search-clear" onClick={() => setQuery("")} aria-label="Clear search"></button>}
           </div>
-          <select className="utp-filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <select className="utp-filter-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
             {FILTER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <span className="utp-count">{loading ? "" : `${filtered.length} ticket${filtered.length !== 1 ? "s" : ""}`}</span>
@@ -417,7 +420,7 @@ const UserTicketsPage = () => {
                 </tr>
               ))}
 
-              {!loading && filtered.map(t => {
+              {!loading && filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(t => {
                 const m = statusMeta(t.status);
                 const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" }) : "";
                 return (
@@ -572,13 +575,13 @@ const UserTicketsPage = () => {
                             </div>
                           ) : (
                             <button className="icon-btn" onClick={() => { setResolveErr(""); setSelected(t); }} aria-label="View ticket" title="View details">
-                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="#111827" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="#111827" strokeWidth="1.7"/></svg>
                             </button>
                           )}
                         </>
                       ) : (
                         <button className="icon-btn" onClick={() => { setResolveErr(""); setSelected(t); }} aria-label="View ticket" title="View details">
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6.1.3.1.6 0 .9-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="#111827" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="#111827" strokeWidth="1.7"/></svg>
                         </button>
                       )}
                     </td>
@@ -605,6 +608,29 @@ const UserTicketsPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && filtered.length > PAGE_SIZE && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '16px 0 8px' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.6 : 1 }}
+            >
+              Prev
+            </button>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>
+              Page {page} of {Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}
+            </div>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+              disabled={page >= Math.ceil(filtered.length / PAGE_SIZE)}
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'not-allowed' : 'pointer', opacity: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 0.6 : 1 }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </section>
 
       {/* 
@@ -911,7 +937,7 @@ const UserTicketsPage = () => {
                     {selected.status === "PROCESSING" && (String(selected.assignment?.assigned_to || "") === String(user?.id || "") || String(selected.assignment?.officer?.id || "") === String(user?.id || "")) && (
                       <button onClick={() => handleResolveTicket(selected.id)} disabled={resolveBusy}
                         style={{ padding:"9px 20px", borderRadius:10, border:"none", background:resolveBusy?"#86efac":"linear-gradient(135deg,#10b981,#059669)", color:"#fff", fontWeight:700, fontSize:14, cursor:resolveBusy?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:8, boxShadow:resolveBusy?"none":"0 4px 14px rgba(16,185,129,0.35)" }}>
-                        {resolveBusy && <div style={{ width:13, height:13, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />}
+                        {resolveBusy ? <div style={{ width:13, height:13, border:"2px solid rgba(255,255,255,0.4)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>}
                         {resolveBusy?"Resolving":"Mark as Resolved"}
                       </button>
                     )}
@@ -928,7 +954,10 @@ const UserTicketsPage = () => {
                     )}
 
                     <button onClick={() => setSelected(null)}
-                      style={{ padding:"9px 18px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#fff", color:"#374151", fontWeight:600, fontSize:14, cursor:"pointer" }}>Dismiss</button>
+                      style={{ padding:"9px 18px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#fff", color:"#374151", fontWeight:600, fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", gap:7 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      Dismiss
+                    </button>
                   </div>
                 </>
               );

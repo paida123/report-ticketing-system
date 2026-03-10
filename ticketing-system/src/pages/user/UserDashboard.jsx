@@ -168,6 +168,7 @@ const UserDashboard = () => {
 
   // ─── KPI definitions ─────────────────────────────────────────────────────────
   const KPI_DEFS = [
+    { key: 'total',   label: 'Total',   color: 'purple', items: viewTickets },
     { key: 'pending',  label: 'Pending',  color: 'amber', items: pending  },
     { key: 'active',   label: 'Active',   color: 'blue',  items: active   },
     { key: 'resolved', label: 'Resolved', color: 'green', items: resolved },
@@ -247,7 +248,7 @@ const UserDashboard = () => {
   const SkeletonRows = () => <>{[1,2,3].map(i => <div key={i} className="ts-skeleton" />)}</>;
 
   // ─── Newest-3 helpers ────────────────────────────────────────────────────────
-  const newest3 = (arr) => [...arr].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3);
+  const newest4 = (arr) => [...arr].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
 
   return (
     <>
@@ -305,11 +306,11 @@ const UserDashboard = () => {
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
               {ticketsLoading ? <SkeletonRows />
-                : pending.length ? newest3(pending).map(t => <TicketRow key={t.id} t={t} />)
+                : pending.length ? newest4(pending).map(t => <TicketRow key={t.id} t={t} />)
                 : <EmptyState msg="No pending tickets" />}
             </div>
             <div className="ts-footer">
-              <span className="ts-footer-count">{!ticketsLoading && pending.length > 3 ? `+${pending.length - 3} more` : ''}</span>
+              <span className="ts-footer-count">{!ticketsLoading && pending.length > 4 ? `+${pending.length - 4} more` : ''}</span>
               {!ticketsLoading && pending.length > 0 && (
                 <button className="ts-footer-btn" onClick={() => openKpiModal('pending')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -334,11 +335,11 @@ const UserDashboard = () => {
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
               {ticketsLoading ? <SkeletonRows />
-                : active.length ? newest3(active).map(t => <TicketRow key={t.id} t={t} />)
+                : active.length ? newest4(active).map(t => <TicketRow key={t.id} t={t} />)
                 : <EmptyState msg="No active tickets" />}
             </div>
             <div className="ts-footer">
-              <span className="ts-footer-count">{!ticketsLoading && active.length > 3 ? `+${active.length - 3} more` : ''}</span>
+              <span className="ts-footer-count">{!ticketsLoading && active.length > 4 ? `+${active.length - 4} more` : ''}</span>
               {!ticketsLoading && active.length > 0 && (
                 <button className="ts-footer-btn" onClick={() => openKpiModal('active')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -363,11 +364,11 @@ const UserDashboard = () => {
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
               {ticketsLoading ? <SkeletonRows />
-                : resolved.length ? newest3(resolved).map(t => <TicketRow key={t.id} t={t} />)
+                : resolved.length ? newest4(resolved).map(t => <TicketRow key={t.id} t={t} />)
                 : <EmptyState msg="No resolved tickets" />}
             </div>
             <div className="ts-footer">
-              <span className="ts-footer-count">{!ticketsLoading && resolved.length > 3 ? `+${resolved.length - 3} more` : ''}</span>
+              <span className="ts-footer-count">{!ticketsLoading && resolved.length > 4 ? `+${resolved.length - 4} more` : ''}</span>
               {!ticketsLoading && resolved.length > 0 && (
                 <button className="ts-footer-btn" onClick={() => openKpiModal('resolved')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -392,11 +393,11 @@ const UserDashboard = () => {
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
               {ticketsLoading ? <SkeletonRows />
-                : rejected.length ? newest3(rejected).map(t => <TicketRow key={t.id} t={t} />)
+                : rejected.length ? newest4(rejected).map(t => <TicketRow key={t.id} t={t} />)
                 : <EmptyState msg="No rejected tickets" />}
             </div>
             <div className="ts-footer">
-              <span className="ts-footer-count">{!ticketsLoading && rejected.length > 3 ? `+${rejected.length - 3} more` : ''}</span>
+              <span className="ts-footer-count">{!ticketsLoading && rejected.length > 4 ? `+${rejected.length - 4} more` : ''}</span>
               {!ticketsLoading && rejected.length > 0 && (
                 <button className="ts-footer-btn" onClick={() => openKpiModal('rejected')} style={{ gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -415,7 +416,7 @@ const UserDashboard = () => {
             const score    = total > 0 ? met / total : 1;
             const medal    = getMedal(score);
             const pct      = Math.round(score * 100);
-            const topFive  = mySlaData.slice(0, 5);
+            const topTwo  = mySlaData.slice(0, 2);
             return (
               <div className="table-section ts-sla">
                 <div className="ts-header">
@@ -456,7 +457,7 @@ const UserDashboard = () => {
                 <div className="ts-body">
                   {slaLoading ? <SkeletonRows />
                     : slaError ? <EmptyState msg={slaError} />
-                    : topFive.length ? topFive.map((r, i) => {
+                    : topTwo.length ? topTwo.map((r, i) => {
                         const isMet  = slaIsMet(r);
                         const gc     = slaGradeColor(r.grade);
                         return (
@@ -471,6 +472,16 @@ const UserDashboard = () => {
                         );
                       })
                     : <EmptyState msg="No SLA records yet" />}
+                </div>
+                <div className="ts-footer">
+                  <span className="ts-footer-count">{!slaLoading && mySlaData.length > 2 ? `+${mySlaData.length - 2} more` : ''}</span>
+                  {!slaLoading && mySlaData.length > 0 && (
+                    <button className="ts-footer-btn" onClick={() => { window.location.href = '/user/sla'; }} style={{ gap: 6 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      View all
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -824,7 +835,7 @@ const UserDashboard = () => {
                             onMouseOver={e => !closeTicketBusy && (e.currentTarget.style.transform = 'translateY(-2px)')}
                             onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
                           >
-                            {closeTicketBusy && <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                            {closeTicketBusy ? <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>}
                             {closeTicketBusy ? 'Closing…' : 'Close Ticket'}
                           </button>
                         )}
@@ -849,6 +860,7 @@ const UserDashboard = () => {
                             e.currentTarget.style.borderColor = '#e5e7eb';
                           }}
                         >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                           Dismiss
                         </button>
                       </div>

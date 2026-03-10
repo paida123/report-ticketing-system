@@ -29,11 +29,13 @@ const isMet = (r) => r.grade === "EXCELLENT" || r.grade === "ON_TARGET";
 /*  Component  */
 const UserSlaPage = () => {
   const { user } = useAuth();
+  const PAGE_SIZE = 10;
   const [slaData, setSlaData]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [loadErr, setLoadErr]   = useState("");
   const [selected, setSelected] = useState(null);
   const [query,    setQuery]    = useState("");
+  const [page,     setPage]     = useState(1);
 
   const loadSla = useCallback(() => {
     if (!user?.id) return;
@@ -169,7 +171,7 @@ const UserSlaPage = () => {
             <input
               className="sla-search-input"
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { setQuery(e.target.value); setPage(1); }}
               placeholder="Search by ID, officer or type"
             />
           </div>
@@ -203,7 +205,7 @@ const UserSlaPage = () => {
                     </tr>
                   ))}
 
-                  {!loading && filtered.map((r, i) => {
+                  {!loading && filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r, i) => {
                     const met    = isMet(r);
                     const gColor = gradeColor(r.grade);
                     return (
@@ -246,6 +248,27 @@ const UserSlaPage = () => {
               </table>
             </div>
           </div>
+          { !loading && filtered.length > PAGE_SIZE && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '16px 0 8px' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.6 : 1 }}
+              >
+                Prev
+              </button>
+              <div style={{ fontSize: 12, color: '#9ca3af' }}>
+                Page {page} of {Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}
+              </div>
+              <button
+                onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+                disabled={page >= Math.ceil(filtered.length / PAGE_SIZE)}
+                style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'not-allowed' : 'pointer', opacity: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 0.6 : 1 }}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

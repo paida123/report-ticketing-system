@@ -41,6 +41,7 @@ const officerLabel = (r) => {
 /* ── Component ───────────────────────────────────────────────────────────── */
 const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
   const { user } = useAuth();
+  const PAGE_SIZE = 10;
 
   /* Tab */
   const [activeTab, setActiveTab] = useState('department');
@@ -56,6 +57,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
   /* Filter / modal */
   const [query,    setQuery]    = useState('');
   const [selected, setSelected] = useState(null);
+  const [page,     setPage]     = useState(1);
 
   /* ── Loaders ──────────────────────────────────────────────────────────── */
   /* Pull department straight from the JWT-decoded user object */
@@ -181,7 +183,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
       <div className="mgr-tabs" style={{ marginBottom: 4 }}>
         <button
           className={`mgr-tab${activeTab === 'department' ? ' active' : ''}`}
-          onClick={() => { setActiveTab('department'); setQuery(''); setSelected(null); }}
+          onClick={() => { setActiveTab('department'); setQuery(''); setSelected(null); setPage(1); }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6 }}>
             <path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -199,7 +201,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
         </button>
         <button
           className={`mgr-tab${activeTab === 'mine' ? ' active' : ''}`}
-          onClick={() => { setActiveTab('mine'); setQuery(''); setSelected(null); }}
+          onClick={() => { setActiveTab('mine'); setQuery(''); setSelected(null); setPage(1); }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: 6 }}>
             <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/>
@@ -300,7 +302,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
             <input
               className="sla-search-input"
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { setQuery(e.target.value); setPage(1); }}
               placeholder={activeTab === 'department' ? 'Search by ID, officer, type or grade…' : 'Search by ID, officer or type…'}
             />
             {query && (
@@ -346,7 +348,7 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
                     </tr>
                   ))}
 
-                  {!isLoading && filtered.map((r, i) => {
+                  {!isLoading && filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r, i) => {
                     const met    = isMet(r);
                     const gColor = gradeColor(r.grade);
 
@@ -424,6 +426,27 @@ const ManagerSlaPage = ({ bypassDeptFilter = false }) => {
               </table>
             </div>
           </div>
+          {!isLoading && filtered.length > PAGE_SIZE && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '16px 0 8px' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.6 : 1 }}
+              >
+                Prev
+              </button>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                Page {page} of {Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}
+              </div>
+              <button
+                onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+                disabled={page >= Math.ceil(filtered.length / PAGE_SIZE)}
+                style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'not-allowed' : 'pointer', opacity: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 0.6 : 1 }}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

@@ -26,6 +26,7 @@ const buildSteps = (ticket, allApprovals) => {
 
 const PendingApprovalPage = () => {
   const { user } = useAuth();
+  const PAGE_SIZE = 10;
 
   const [tickets, setTickets]             = useState([]);
   const [allApprovals, setAllApprovals]   = useState([]);
@@ -47,6 +48,7 @@ const PendingApprovalPage = () => {
   const [declineErr, setDeclineErr]       = useState('');
 
   const [query, setQuery]                 = useState('');
+  const [page, setPage]                   = useState(1);
 
   const loadData = useCallback(() => {
     setLoading(true); setLoadErr('');
@@ -146,7 +148,7 @@ const PendingApprovalPage = () => {
         <div className="utp-controls">
           <div className="utp-search-wrap">
             <svg className="utp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-            <input className="utp-search" placeholder="Search title, ID, requester or department..." value={query} onChange={e => setQuery(e.target.value)} />
+            <input className="utp-search" placeholder="Search title, ID, requester or department..." value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} />
             {query && <button className="utp-search-clear" onClick={() => setQuery('')} aria-label="Clear search">x</button>}
           </div>
         </div>
@@ -177,7 +179,7 @@ const PendingApprovalPage = () => {
                   <td colSpan={7}><div className="utp-skeleton-bar" /></td>
                 </tr>
               ))}
-              {!loading && filtered.map(t => {
+              {!loading && filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(t => {
                 const totalSteps = t.ticket_type?.approval_count || 1;
                 const ticketApprovals = allApprovals.filter(a => (a.ticket_id || a.ticket?.id) === t.id);
                 const approvedCount = ticketApprovals.filter(a => a.status === 'APPROVED').length;
@@ -197,8 +199,8 @@ const PendingApprovalPage = () => {
                     </td>
                     <td className="utp-col-date">{t.created_at ? new Date(t.created_at).toLocaleDateString() : '-'}</td>
                     <td className="utp-col-actions">
-                      <button className="utp-view-btn" onClick={e => { e.stopPropagation(); setSelected(t); setDeclineId(null); setApproveErr(''); }} aria-label="View">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6a1.2 1.2 0 0 1 0 .9c-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.7"/></svg>
+                      <button className="icon-btn" onClick={e => { e.stopPropagation(); setSelected(t); setDeclineId(null); setApproveErr(''); }} aria-label="View" title="View details">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2.2 12.1C3.7 7.6 7.5 4.5 12 4.5c4.5 0 8.3 3.1 9.8 7.6a1.2 1.2 0 0 1 0 .9c-1.5 4.5-5.3 7.6-9.8 7.6-4.5 0-8.3-3.1-9.8-7.6a1.2 1.2 0 0 1 0-.9Z" stroke="#111827" strokeWidth="1.7" strokeLinejoin="round"/><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="#111827" strokeWidth="1.7"/></svg>
                       </button>
                     </td>
                   </tr>
@@ -212,6 +214,29 @@ const PendingApprovalPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && filtered.length > PAGE_SIZE && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '16px 0 8px' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.6 : 1 }}
+            >
+              Prev
+            </button>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>
+              Page {page} of {Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}
+            </div>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+              disabled={page >= Math.ceil(filtered.length / PAGE_SIZE)}
+              style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 13, cursor: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'not-allowed' : 'pointer', opacity: page >= Math.ceil(filtered.length / PAGE_SIZE) ? 0.6 : 1 }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </section>
 
       {selected && createPortal(
@@ -229,7 +254,7 @@ const PendingApprovalPage = () => {
               return (
                 <>
                   <div style={{ background: 'linear-gradient(135deg,#f59e0b18,#f59e0b08)', borderBottom: '2px solid #f59e0b25', padding: '20px 24px', display: 'flex', alignItems: 'flex-start', gap: 14, flexShrink: 0 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f59e0b22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>|{'>'}|</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f59e0b22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>⏳</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: 16, color: '#111827', lineHeight: 1.3, marginBottom: 4, wordBreak: 'break-word' }}>{selected.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -332,17 +357,20 @@ const PendingApprovalPage = () => {
                     ) : (
                       <>
                         <button onClick={() => { setDeclineId(selected.id); setDeclineReason(''); setDeclineErr(''); setApproveErr(''); }} disabled={approveBusy}
-                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
                           Decline
                         </button>
                         <button onClick={() => handleApprove(selected.id)} disabled={approveBusy}
                           style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: approveBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: approveBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {approveBusy ? <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           {approveBusy ? 'Approving...' : 'Approve'}
                         </button>
                       </>
                     )}
                     <button onClick={closeModal}
-                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                       Close
                     </button>
                   </div>

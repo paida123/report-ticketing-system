@@ -67,15 +67,18 @@
 	inline-size: 38px;
 	block-size: 38px;
 	border-radius: 12px;
-	border: 1px solid rgba(148,163,184,0.28);
-	background: rgba(255,255,255,0.85);
-	color: #0f172a;
+	border: 1.5px solid #cbd5e1;
+	background: #fff;
+	color: #111827;
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
+
+.icon-btn svg { display: block; }
+.icon-btn svg path { stroke: #111827; }
 
 .icon-btn:hover{
 	transform: translateY(-1px);

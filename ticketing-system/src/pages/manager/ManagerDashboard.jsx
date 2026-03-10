@@ -402,8 +402,17 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : pending.length ? pending.map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No pending tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : pending.length ? pending.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No pending tickets" />}
             </div>
+            {!ticketsLoading && pending.length > 4 && (
+              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => openKpiModal('pending')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all ({pending.length})
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Active */}
@@ -419,8 +428,17 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : active.length ? active.map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No active tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : active.length ? active.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No active tickets" />}
             </div>
+            {!ticketsLoading && active.length > 4 && (
+              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => openKpiModal('active')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all ({active.length})
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Resolved */}
@@ -436,8 +454,17 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : resolved.length ? resolved.map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No resolved tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : resolved.length ? resolved.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No resolved tickets" />}
             </div>
+            {!ticketsLoading && resolved.length > 4 && (
+              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => openKpiModal('resolved')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all ({resolved.length})
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Rejected */}
@@ -453,8 +480,17 @@ const ManagerDashboard = () => {
             </div>
             <div className="ts-col-head"><span>ID</span><span>Title</span><span>Status</span></div>
             <div className="ts-body">
-              {ticketsLoading ? <SkeletonRows /> : rejected.length ? rejected.map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No rejected tickets" />}
+              {ticketsLoading ? <SkeletonRows /> : rejected.length ? rejected.slice(0, 4).map(t => <TicketRow key={t.id} t={t} />) : <EmptyState msg="No rejected tickets" />}
             </div>
+            {!ticketsLoading && rejected.length > 4 && (
+              <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => openKpiModal('rejected')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View all ({rejected.length})
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* SLA — full width */}
@@ -673,8 +709,9 @@ const ManagerDashboard = () => {
                     {canReassign && !reassignOpen && (
                       <button
                         onClick={() => { setReassignOpen(true); setReassignErr(''); setReassignOfficer(''); }}
-                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                        style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}
                       >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17 1l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 11V9a4 4 0 0 1 4-4h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 23l-4-4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         Reassign
                       </button>
                     )}
@@ -700,12 +737,13 @@ const ManagerDashboard = () => {
                     {isMineToApprove && !declineOpen && !reassignOpen && (
                       <>
                         <button onClick={() => { setDeclineOpen(true); setDeclineErr(''); setDeclineReason(''); }} disabled={approveBusy}
-                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                          style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
                           Decline
                         </button>
                         <button onClick={() => handleApprove(selected.id)} disabled={approveBusy}
                           style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: approveBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: approveBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {approveBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                          {approveBusy ? <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           {approveBusy ? 'Approving…' : 'Approve'}
                         </button>
                       </>
@@ -726,12 +764,13 @@ const ManagerDashboard = () => {
                     {['QUEUED', 'PROCESSING'].includes(selected.status) && selected.assignment?.officer?.id === user?.id && !reassignOpen && (
                       <button onClick={() => handleCloseTicket(selected.id)} disabled={closeTicketBusy}
                         style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: closeTicketBusy ? '#6ee7b7' : 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: closeTicketBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {closeTicketBusy && <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />}
+                        {closeTicketBusy ? <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>}
                         {closeTicketBusy ? 'Closing…' : 'Close Ticket'}
                       </button>
                     )}
                     <button onClick={() => { setSelected(null); setDeclineOpen(false); setDeclineReason(''); setReassignOpen(false); setReassignOfficer(''); }}
-                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                      style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                       Dismiss
                     </button>
                   </div>
