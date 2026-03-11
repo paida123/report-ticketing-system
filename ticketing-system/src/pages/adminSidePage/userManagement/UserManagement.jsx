@@ -325,7 +325,7 @@ const UserManagement = () => {
 	const applyFilter = (setter) => (val) => { setter(val); setPage(1); };
 
 	/* CRUD callbacks */
-	const onAdded = (u) => { showToast(`User ${u.first_name} ${u.last_name} created.`); fetchUsers(1); setPage(1); };
+	const onAdded = (u) => { showToast('Added successfully'); fetchUsers(1); setPage(1); };
 	const onUpdated = (u) => {
 		setUsers(prev => prev.map(x => x.id === u.id ? { ...x, ...u } : x));
 		showToast(`User updated.`);

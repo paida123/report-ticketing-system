@@ -120,7 +120,7 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
             )
         },
         {
-            key: 'mytickets', label: 'My Tickets', badge: stats.myTickets || 0, icon: (
+            key: 'mytickets', label: 'My Tickets', icon: (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6zm0 5h12v2H3v-2zm0 5h18v2H3v-2z" fill="currentColor"/></svg>
             )
         },
@@ -130,17 +130,17 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
             )
         },
         {
-            key: 'pendingApproval', label: 'Pending Approval', badge: stats.forApproval || 0, icon: (
+            key: 'pendingApproval', label: 'Pending Approval', icon: (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="currentColor"/></svg>
             )
         },
         {
-            key: 'manager', label: 'Manager', badge: stats.forApproval || 0, icon: (
+            key: 'manager', label: 'Manager', icon: (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z" fill="currentColor"/></svg>
             )
         },
         {
-            key: 'notifications', label: 'Tickets', badge: stats.pendingNotifications || 0, icon: (
+            key: 'notifications', label: 'Tickets', icon: (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zM18 16v-5c0-3.07-1.63-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-1.99 2H20l-2-2z" fill="currentColor" /></svg>
             )
         },
@@ -155,7 +155,7 @@ const Sidebar = ({ activeKey = 'dashboard', onNavigate = () => { }, stats = {} }
             )
         },
         {
-            key: 'users', label: 'User Management', badge: stats.activeUsers || 0, icon: (
+            key: 'users', label: 'User Management', icon: (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C15.68 13.73 17 15 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-6-3.5z" fill="currentColor" /></svg>
             )
         },

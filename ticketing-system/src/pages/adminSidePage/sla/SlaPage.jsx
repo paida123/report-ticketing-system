@@ -72,7 +72,7 @@ const SlaPage = () => {
   // Enrich SLA data with ticket information
   const enrichedSla = slaData.map((sla) => {
     const ticket = tickets.find((t) => t.id === sla.ticket_id);
-    const department = sla.ticket_department || "Unknown";
+    const department = sla.ticket_department || ticket?.ticket_type?.departmental?.department || "Unknown";
     const breached = sla.grade === "POOR";
     const atRisk = sla.grade === "ON_TARGET";
 
@@ -151,8 +151,8 @@ const SlaPage = () => {
       department: s.department,
       assigned_to: `${s.assigned_to?.first_name || ""} ${s.assigned_to?.last_name || ""}`.trim(),
       type: s.type,
-      expected_sla: s.expected_sla || "N/A",
-      actual_sla: s.actual_sla || "N/A",
+      expected_sla: s.expected_sla != null ? s.expected_sla : "N/A",
+      actual_sla: s.actual_sla != null ? s.actual_sla : "N/A",
       grade: s.grade,
     }));
     const hdr = Object.keys(exportRows[0]).join(",") + "\n";
@@ -329,8 +329,8 @@ const SlaPage = () => {
                       <td>
                         <span className={`status ${s.type.toLowerCase()}`}>{s.type}</span>
                       </td>
-                      <td><strong>{s.expected_sla || "N/A"}</strong></td>
-                      <td><strong>{s.actual_sla || "N/A"}</strong></td>
+                      <td><strong>{s.expected_sla != null ? s.expected_sla : "N/A"}</strong></td>
+                      <td><strong>{s.actual_sla != null ? s.actual_sla : "N/A"}</strong></td>
                       <td>
                         <span className="sla-grade-badge" style={{ background: `${gColor}22`, color: gColor, padding: "6px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700 }}>
                           {s.grade || "N/A"}

@@ -418,7 +418,8 @@ const ViewTicketModal = ({ ticket, onClose, onClosed }) => {
   const sm = statusMeta(ticket.status);
   const canClose = ticket.status === 'PENDING_APPROVAL' || ticket.status === 'QUEUED';
   const creator = ticket.created_by?.name || '-';
-  const creatorDept = ticket.created_by?.department || '';
+  const deptVal = ticket.created_by?.department;
+  const creatorDept = typeof deptVal === 'object' ? (deptVal?.department || '') : (deptVal || '');
   const creatorEmail = ticket.created_by?.email || '';
   const officer = ticket.assignment?.officer?.name || 'Unassigned';
   const officerEmail = ticket.assignment?.officer?.email || '';
@@ -801,7 +802,7 @@ const TicketsPage = () => {
                     {ticketsList.map(t => {
                       const sm = statusMeta(t.status);
                       const creator = t.created_by?.name || '-';
-                      const department = t.ticket_type?.departmental?.department || '-';
+                      const department = t.ticket_type?.departmental?.department || t.ticket_type?.department?.department || '-';
                       const officer = t.assignment?.officer?.name || 'Unassigned';
                       return (
                         <tr key={t.id}>
