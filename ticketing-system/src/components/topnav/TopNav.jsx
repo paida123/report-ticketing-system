@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import UserService from '../../services/user.service';
 import './topnav.css';
 
 const pathToTitle = (pathname = '') => {
@@ -26,6 +27,10 @@ const TopNav = ({ initials = 'RT', userName = 'Admin' }) => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [showChange, setShowChange] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwErr, setPwErr] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -124,10 +129,31 @@ const TopNav = ({ initials = 'RT', userName = 'Admin' }) => {
           <div className="um-modal-overlay" role="dialog" aria-modal="true">
             <div className="um-modal small">
               <h3>Change password</h3>
-              <form onSubmit={(e) => { e.preventDefault(); setShowChange(false); }}>
-                <div className="row"><label>Current password<input type="password" required /></label></div>
-                <div className="row"><label>New password<input type="password" required /></label></div>
-                <div className="row actions"><button type="button" className="btn-muted" onClick={() => setShowChange(false)}>Cancel</button><button className="btn-primary">Save</button></div>
+              {pwSuccess && <div style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{pwSuccess}</div>}
+              {pwErr && <div style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{pwErr}</div>}
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setPwErr(''); setPwSuccess('');
+                if (!pwForm.current || !pwForm.newPw || !pwForm.confirm) return setPwErr('All fields are required.');
+                if (pwForm.newPw !== pwForm.confirm) return setPwErr('New passwords do not match.');
+                if (pwForm.newPw.length < 6) return setPwErr('New password must be at least 6 characters.');
+                setPwSaving(true);
+                try {
+                  await UserService.changePassword(user.id, pwForm.current, pwForm.newPw);
+                  setPwSuccess('Password changed successfully.');
+                  setPwForm({ current: '', newPw: '', confirm: '' });
+                  setTimeout(() => { setShowChange(false); setPwSuccess(''); }, 1800);
+                } catch (ex) {
+                  setPwErr(ex?.response?.data?.message || 'Failed to change password.');
+                } finally { setPwSaving(false); }
+              }}>
+                <div className="row"><label>Current password<input type="password" required value={pwForm.current} onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} /></label></div>
+                <div className="row"><label>New password<input type="password" required value={pwForm.newPw} onChange={e => setPwForm(f => ({ ...f, newPw: e.target.value }))} /></label></div>
+                <div className="row"><label>Confirm new password<input type="password" required value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} /></label></div>
+                <div className="row actions">
+                  <button type="button" className="btn-muted" onClick={() => { setShowChange(false); setPwErr(''); setPwSuccess(''); setPwForm({ current: '', newPw: '', confirm: '' }); }} disabled={pwSaving}>Cancel</button>
+                  <button className="btn-primary" disabled={pwSaving}>{pwSaving ? 'Saving...' : 'Save'}</button>
+                </div>
               </form>
             </div>
           </div>,

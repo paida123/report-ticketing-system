@@ -26,6 +26,12 @@ const gradeColor = (g) => {
 
 const isMet = (r) => r.grade === "EXCELLENT" || r.grade === "ON_TARGET";
 
+const minsToHours = (mins) => {
+  if (mins == null) return null;
+  const h = mins / 60;
+  return h % 1 === 0 ? String(h) : h.toFixed(1);
+};
+
 /*  Component  */
 const UserSlaPage = () => {
   const { user } = useAuth();
@@ -215,8 +221,8 @@ const UserSlaPage = () => {
                         </td>
                         <td>{r.assigned_to ? `${r.assigned_to.first_name} ${r.assigned_to.last_name}` : ""}</td>
                         <td className="type-col">{r.type || ""}</td>
-                        <td className="sla-col">{r.expected_sla != null ? `${r.expected_sla}h` : ""}</td>
-                        <td className="sla-col">{r.actual_sla    != null ? `${r.actual_sla}h`    : ""}</td>
+                        <td className="sla-col">{r.expected_sla != null ? `${minsToHours(r.expected_sla)}h` : ""}</td>
+                        <td className="sla-col">{r.actual_sla    != null ? `${minsToHours(r.actual_sla)}h`    : ""}</td>
                         <td className="sla-col">
                           <span className={`sla-chip ${met ? "met" : "breached"}`}>
                             {met ? "Met" : "Breached"}
@@ -312,13 +318,13 @@ const UserSlaPage = () => {
                     <div className="sla-modal-field">
                       <span className="sla-modal-field-label">Expected SLA</span>
                       <span className="sla-modal-field-value large" style={{ color: "#3b82f6" }}>
-                        {selected.expected_sla != null ? `${selected.expected_sla}h` : ""}
+                        {selected.expected_sla != null ? `${minsToHours(selected.expected_sla)}h` : ""}
                       </span>
                     </div>
                     <div className="sla-modal-field">
                       <span className="sla-modal-field-label">Actual SLA</span>
                       <span className="sla-modal-field-value large" style={{ color: met ? "#10b981" : "#ef4444" }}>
-                        {selected.actual_sla != null ? `${selected.actual_sla}h` : ""}
+                        {selected.actual_sla != null ? `${minsToHours(selected.actual_sla)}h` : ""}
                       </span>
                     </div>
                   </div>

@@ -6,6 +6,12 @@ import "../../admin.css";
 import "../adminDashboard/AdminDashboard.css";
 import "./SlaPage.css";
 
+const minsToHours = (mins) => {
+  if (mins == null) return null;
+  const h = mins / 60;
+  return h % 1 === 0 ? String(h) : h.toFixed(1);
+};
+
 const SlaPage = () => {
   const [slaData, setSlaData] = useState([]);
   const [tickets, setTickets] = useState([]);
@@ -151,8 +157,8 @@ const SlaPage = () => {
       department: s.department,
       assigned_to: `${s.assigned_to?.first_name || ""} ${s.assigned_to?.last_name || ""}`.trim(),
       type: s.type,
-      expected_sla: s.expected_sla != null ? s.expected_sla : "N/A",
-      actual_sla: s.actual_sla != null ? s.actual_sla : "N/A",
+      expected_sla: s.expected_sla != null ? minsToHours(s.expected_sla) : "N/A",
+      actual_sla: s.actual_sla != null ? minsToHours(s.actual_sla) : "N/A",
       grade: s.grade,
     }));
     const hdr = Object.keys(exportRows[0]).join(",") + "\n";
@@ -312,8 +318,8 @@ const SlaPage = () => {
                   <th>Assigned Officer</th>
                   <th>Department</th>
                   <th>Type</th>
-                  <th>Expected (min)</th>
-                  <th>Actual (min)</th>
+                  <th>Expected </th>
+                  <th>Actual </th>
                   <th>Grade</th>
                 </tr>
               </thead>
@@ -329,8 +335,8 @@ const SlaPage = () => {
                       <td>
                         <span className={`status ${s.type.toLowerCase()}`}>{s.type}</span>
                       </td>
-                      <td><strong>{s.expected_sla != null ? s.expected_sla : "N/A"}</strong></td>
-                      <td><strong>{s.actual_sla != null ? s.actual_sla : "N/A"}</strong></td>
+                      <td><strong>{s.expected_sla != null ? minsToHours(s.expected_sla) : "N/A"}</strong></td>
+                      <td><strong>{s.actual_sla != null ? `${minsToHours(s.actual_sla)}h` : "N/A"}</strong></td>
                       <td>
                         <span className="sla-grade-badge" style={{ background: `${gColor}22`, color: gColor, padding: "6px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700 }}>
                           {s.grade || "N/A"}

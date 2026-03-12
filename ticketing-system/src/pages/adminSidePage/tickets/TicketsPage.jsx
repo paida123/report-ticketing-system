@@ -176,7 +176,7 @@ const EditTypeModal = ({ ticketType, existingSteps, onClose, onSaved, onDelete, 
   const [form, setForm] = useState({
     title: ticketType.title || '',
     department_id: String(ticketType.department_id || ''),
-    sla: String(ticketType.expected_sla_duration || ''),
+    sla: String(ticketType.expected_sla_duration != null ? (ticketType.expected_sla_duration / 60) : ''),
     approvalCount: Number(ticketType.approval_count || 0),
     chain: existingSteps.map(s => ({ role_id: String(s.role_id || ''), department_id: String(s.department_id || '') })),
   });
@@ -424,7 +424,7 @@ const ViewTicketModal = ({ ticket, onClose, onClosed }) => {
   const officer = ticket.assignment?.officer?.name || 'Unassigned';
   const officerEmail = ticket.assignment?.officer?.email || '';
   const typeName = ticket.ticket_type?.title || '-';
-  const sla = ticket.ticket_type?.expected_sla_duration;
+  const sla = ticket.ticket_type?.expected_sla_duration != null ? (ticket.ticket_type.expected_sla_duration / 60) : null;
   const createdAt = ticket.created_at ? new Date(ticket.created_at).toLocaleString() : '-';
 
   const doClose = async () => {
@@ -711,7 +711,7 @@ const TicketsPage = () => {
                         <tr key={t.id}>
                           <td><strong>{t.title}</strong></td>
                           <td>{t.departmental?.department || ''}</td>
-                          <td>{t.expected_sla_duration ?? ''}</td>
+                          <td>{t.expected_sla_duration != null ? (t.expected_sla_duration / 60) : ''}</td>
                           <td>
                             <span className={`chip ${t.approval_required ? 'in-process' : 'done'}`}>
                               {t.approval_required ? 'Yes' : 'No'}

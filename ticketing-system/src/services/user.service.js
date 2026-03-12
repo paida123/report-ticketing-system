@@ -32,6 +32,13 @@ class UserService {
     updateUserStatus(id, status) {
         return apiUrl.patch(`users/status/${id}`, { status });
     }
+
+    changePassword(userId, currentPassword, newPassword) {
+        return apiUrl.post(`users/password/${userId}`, {
+            current_password: currentPassword,
+            new_password: newPassword,
+        });
+    }
 }
 
 export default new UserService();
